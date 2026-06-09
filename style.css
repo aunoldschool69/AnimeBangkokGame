@@ -5688,15 +5688,13 @@ button.asset-confirm-btn:not(.cute-party-btn) {
         #10b981 var(--ui-btn-confirm-green) center / 100% 100% no-repeat !important;
 }
 
-button.asset-primary-btn:not(.cute-party-btn)::before,
-button.asset-confirm-btn:not(.cute-party-btn)::before {
-    content: "";
-    position: absolute;
-    inset: 8px 14px 10px;
-    z-index: 0;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.68);
-    pointer-events: none;
+/* Disabled button states for consistent design */
+.cute-party-btn.disabled,
+.cute-party-btn:disabled,
+.cute-action-btn:disabled {
+    opacity: 0.65 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
 }
 
 .hud-resource-icon .ui-coin-icon {
