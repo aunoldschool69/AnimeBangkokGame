@@ -12124,7 +12124,6 @@ function updateTileHover() {
     });
 
     // Update cozy HTML hover tooltip
-    const tooltip = document.getElementById('tile-hover-tooltip');
     if (tooltip) {
         if (newHoveredTile) {
             const boardIdx = state.board.findIndex(t => t.mesh === newHoveredTile);
