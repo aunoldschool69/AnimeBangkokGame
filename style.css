@@ -5678,13 +5678,13 @@ button.asset-confirm-btn:not(.cute-party-btn) {
 
 button.asset-primary-btn:not(.cute-party-btn) {
     background:
-        linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.86)),
+        linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05)),
         #f59e0b var(--ui-btn-primary-gold) center / 100% 100% no-repeat !important;
 }
 
 button.asset-confirm-btn:not(.cute-party-btn) {
     background:
-        linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.86)),
+        linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05)),
         #10b981 var(--ui-btn-confirm-green) center / 100% 100% no-repeat !important;
 }
 

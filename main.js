@@ -1879,6 +1879,8 @@ function setupCharacterSelectMorePanel() {
         document.getElementById('btn-open-achievements'),
         document.getElementById('btn-open-gallery'),
         document.getElementById('btn-open-vault'),
+        document.getElementById('btn-open-lucky-wheel'),
+        document.getElementById('btn-open-daily-login'),
         document.getElementById('btn-open-profile'),
         document.getElementById('btn-mode-party')?.parentElement
     ].filter(Boolean);
@@ -12062,7 +12064,14 @@ function onMouseMove(event) {
 }
 
 function updateTileHover() {
-    if (state.loading || !raycaster || !mouse || !tilesGroup) return;
+    const tooltip = document.getElementById('tile-hover-tooltip');
+    if (state.loading || !raycaster || !mouse || !tilesGroup || !state.started || state.isSelectionActive) {
+        if (tooltip) {
+            tooltip.classList.remove('active');
+            tooltip.style.display = 'none';
+        }
+        return;
+    }
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(tilesGroup.children, true);

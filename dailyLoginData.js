@@ -15,7 +15,7 @@ export const dailyLoginRewards = [
         day: 2,
         type: 'coins',
         amount: 200,
-        icon: '🪙',
+        icon: '💰',
         nameEN: '200 Coins',
         nameTH: '200 เหรียญทอง'
     },
