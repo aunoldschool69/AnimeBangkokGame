@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Dice Rotation Debugger 🎲</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: #1e1e24;
+            color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #header {
+            margin: 15px;
+            text-align: center;
+        }
+        #container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 120px);
+        }
+        #canvas-holder {
+            flex: 2;
+            height: 100%;
+            position: relative;
+        }
+        #sidebar {
+            flex: 1;
+            background: #2a2a35;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            border-left: 2px solid #3a3a4a;
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        button {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background-color: #ff8787;
+            transform: scale(1.05);
+        }
+        button.active {
+            background-color: #4dadf7;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-row input {
+            flex: 1;
+        }
+        .slider-row span {
+            width: 50px;
+            font-family: monospace;
+        }
+        pre {
+            background: #15151b;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid #333;
+        }
+    </style>
+    <!-- Include Three.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="header">
+        <h2>3D Dice Rotation Debugger 🎲</h2>
+        <p style="margin: 5px 0 0 0; color: #a5a5b5;">Click a number to apply the game's rotation, or use manual sliders to find the perfect angle.</p>
+    </div>
+    
+    <div id="container">
+        <div id="canvas-holder" id="canvas-container"></div>
+        
+        <div id="sidebar">
+            <h3>Test Game Rolls</h3>
+            <div class="btn-group">
+                <button onclick="testRoll(1)">Roll 1</button>
+                <button onclick="testRoll(2)">Roll 2</button>
+                <button onclick="testRoll(3)">Roll 3</button>
+                <button onclick="testRoll(4)">Roll 4</button>
+                <button onclick="testRoll(5)">Roll 5</button>
+                <button onclick="testRoll(6)">Roll 6</button>
+            </div>
+            
+            <h3>Manual Rotations</h3>
+            <div class="slider-group">
+                <label>Rotation X (pitch)</label>
+                <div class="slider-row">
+                    <input type="range" id="rotX" min="-180" max="180" value="0" oninput="updateSliders()">
+                    <span id="valX">0°</span>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Rotation Y (yaw)</label>
+                <div class="slider-row">
+                    <input type="range" id="rotY" min="-180" max="180" value="0" oninput="updateSliders()">
+                    <span id="valY">0°</span>
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>Rotation Z (roll)</label>
+                <div class="slider-row">
+                    <input type="range" id="rotZ" min="-180" max="180" value="0" oninput="updateSliders()">
+                    <span id="valZ">0°</span>
+                </div>
+            </div>
+            
+            <button style="background: #5c6b73;" onclick="resetRotations()">Reset Rotation</button>
+            
+            <h3>Live Stats</h3>
+            <div>
+                <strong>Current Angle Output:</strong>
+                <pre id="rot-output">rx: 0.00 (0 deg)
+ry: 0.00 (0 deg)
+rz: 0.00 (0 deg)</pre>
+            </div>
+            
+            <div>
+                <strong>Face Vector Values:</strong>
+                <pre id="vector-output">Loading...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, die, controls;
+        const faces = [1, 6, 2, 5, 3, 4]; // Matches main.js exact standard opposing faces order
+
+        function init() {
+            const container = document.getElementById('canvas-holder');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1e1e24);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(0, 4, 6); // View from slightly above and in front
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Controls setup
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 8, 5);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Grid and Axes Helpers
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444455, 0x222233);
+            gridHelper.position.y = -1;
+            scene.add(gridHelper);
+
+            // Draw a green arrow indicating UP (+Y direction)
+            const dir = new THREE.Vector3(0, 1, 0);
+            const origin = new THREE.Vector3(0, 1.5, 0);
+            const length = 1.5;
+            const hex = 0x2ecc71;
+            const arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex, 0.3, 0.15);
+            scene.add(arrowHelper);
+
+            // Create die mesh
+            createDie();
+
+            // Handle window resizing
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+
+            animate();
+        }
+
+        function createDie() {
+            const dieGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+            const materials = [];
+
+            faces.forEach(num => {
+                const diceCanvas = document.createElement('canvas');
+                diceCanvas.width = 128;
+                diceCanvas.height = 128;
+                const ctx = diceCanvas.getContext('2d');
+
+                // White background
+                ctx.fillStyle = '#fffef8';
+                ctx.fillRect(0, 0, 128, 128);
+
+                // Dark border
+                ctx.strokeStyle = '#3a3232';
+                ctx.lineWidth = 10;
+                ctx.strokeRect(5, 5, 118, 118);
+
+                // Red/Dark dots
+                ctx.fillStyle = num === 1 ? '#ff3366' : '#3a3232';
+                const r = num === 1 ? 16 : 8;
+
+                const drawDot = (x, y) => {
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                };
+
+                if (num === 1) drawDot(64, 64);
+                if (num === 2) { drawDot(32, 32); drawDot(96, 96); }
+                if (num === 3) { drawDot(32, 32); drawDot(64, 64); drawDot(96, 96); }
+                if (num === 4) { drawDot(32, 32); drawDot(96, 32); drawDot(32, 96); drawDot(96, 96); }
+                if (num === 5) { drawDot(32, 32); drawDot(96, 32); drawDot(64, 64); drawDot(32, 96); drawDot(96, 96); }
+                if (num === 6) { drawDot(32, 32); drawDot(96, 32); drawDot(32, 64); drawDot(96, 64); drawDot(32, 96); drawDot(96, 96); }
+
+                // Add face number text in corners for sanity checks
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.font = 'bold 20px monospace';
+                ctx.fillText(num, 15, 25);
+
+                const tex = new THREE.CanvasTexture(diceCanvas);
+                materials.push(new THREE.MeshStandardMaterial({
+                    map: tex,
+                    roughness: 0.5,
+                    metalness: 0.1
+                }));
+            });
+
+            die = new THREE.Mesh(dieGeo, materials);
+            die.position.set(0, 0, 0);
+            scene.add(die);
+        }
+
+        function testRoll(val) {
+            const localUp = new THREE.Vector3();
+            if (val === 1) localUp.set(1, 0, 0);       // +X
+            else if (val === 6) localUp.set(-1, 0, 0); // -X
+            else if (val === 2) localUp.set(0, 1, 0);  // +Y
+            else if (val === 5) localUp.set(0, -1, 0); // -Y
+            else if (val === 3) localUp.set(0, 0, 1);  // +Z
+            else if (val === 4) localUp.set(0, 0, -1); // -Z
+
+            const q = new THREE.Quaternion();
+            q.setFromUnitVectors(localUp, new THREE.Vector3(0, 1, 0));
+            die.quaternion.copy(q);
+            
+            // Extract Euler rotations to display in sliders
+            const euler = new THREE.Euler().setFromQuaternion(q);
+            document.getElementById('rotX').value = Math.round(euler.x * 180 / Math.PI);
+            document.getElementById('rotY').value = Math.round(euler.y * 180 / Math.PI);
+            document.getElementById('rotZ').value = Math.round(euler.z * 180 / Math.PI);
+            
+            updateLabels(euler.x, euler.y, euler.z);
+        }
+
+        function updateSliders() {
+            const rx = parseInt(document.getElementById('rotX').value) * Math.PI / 180;
+            const ry = parseInt(document.getElementById('rotY').value) * Math.PI / 180;
+            const rz = parseInt(document.getElementById('rotZ').value) * Math.PI / 180;
+            
+            die.rotation.set(rx, ry, rz);
+            updateLabels(rx, ry, rz);
+        }
+
+        function resetRotations() {
+            die.rotation.set(0, 0, 0);
+            document.getElementById('rotX').value = 0;
+            document.getElementById('rotY').value = 0;
+            document.getElementById('rotZ').value = 0;
+            updateLabels(0, 0, 0);
+        }
+
+        function updateLabels(rx, ry, rz) {
+            document.getElementById('valX').innerText = Math.round(rx * 180 / Math.PI) + '°';
+            document.getElementById('valY').innerText = Math.round(ry * 180 / Math.PI) + '°';
+            document.getElementById('valZ').innerText = Math.round(rz * 180 / Math.PI) + '°';
+
+            document.getElementById('rot-output').innerText = 
+                `rx: ${rx.toFixed(4)} (${Math.round(rx * 180 / Math.PI)} deg)\n` +
+                `ry: ${ry.toFixed(4)} (${Math.round(ry * 180 / Math.PI)} deg)\n` +
+                `rz: ${rz.toFixed(4)} (${Math.round(rz * 180 / Math.PI)} deg)`;
+        }
+
+        function calculateUpFace() {
+            if (!die) return;
+            
+            // Standard normals in local space for the 6 faces:
+            // 0: +X, 1: -X, 2: +Y, 3: -Y, 4: +Z, 5: -Z
+            const localNormals = [
+                new THREE.Vector3(1, 0, 0),  // index 0 (+X) -> drawn 1
+                new THREE.Vector3(-1, 0, 0), // index 1 (-X) -> drawn 6
+                new THREE.Vector3(0, 1, 0),  // index 2 (+Y) -> drawn 2
+                new THREE.Vector3(0, -1, 0), // index 3 (-Y) -> drawn 5
+                new THREE.Vector3(0, 0, 1),  // index 4 (+Z) -> drawn 3
+                new THREE.Vector3(0, 0, -1)  // index 5 (-Z) -> drawn 4
+            ];
+
+            let text = "";
+            let maxDot = -Infinity;
+            let bestFaceIndex = -1;
+
+            const worldMatrix = die.matrixWorld;
+
+            localNormals.forEach((v, idx) => {
+                // Rotate vector to world space
+                const worldV = v.clone().applyMatrix4(new THREE.Matrix4().extractRotation(worldMatrix));
+                
+                // Calculate dot product with world UP vector (0, 1, 0)
+                const dot = worldV.dot(new THREE.Vector3(0, 1, 0));
+                
+                text += `Face ${faces[idx]} (${worldV.x.toFixed(2)}, ${worldV.y.toFixed(2)}, ${worldV.z.toFixed(2)}) -> Dot with UP: ${dot.toFixed(3)}\n`;
+                
+                if (dot > maxDot) {
+                    maxDot = dot;
+                    bestFaceIndex = idx;
+                }
+            });
+
+            text += `\n---> ACTIVE FACE ON TOP (World Y+): ${faces[bestFaceIndex]} <---`;
+            document.getElementById('vector-output').innerText = text;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            calculateUpFace();
+            renderer.render(scene, camera);
+        }
+
+        async function autoTestAndReport() {
+            const results = {};
+            for (let val = 1; val <= 6; val++) {
+                // Apply rotation
+                testRoll(val);
+                // Force update matrix and render
+                die.updateMatrixWorld(true);
+                renderer.render(scene, camera);
+                
+                // Calculate up face
+                const localNormals = [
+                    new THREE.Vector3(1, 0, 0),  // index 0 (+X) -> drawn 1
+                    new THREE.Vector3(-1, 0, 0), // index 1 (-X) -> drawn 6
+                    new THREE.Vector3(0, 1, 0),  // index 2 (+Y) -> drawn 2
+                    new THREE.Vector3(0, -1, 0), // index 3 (-Y) -> drawn 5
+                    new THREE.Vector3(0, 0, 1),  // index 4 (+Z) -> drawn 3
+                    new THREE.Vector3(0, 0, -1)  // index 5 (-Z) -> drawn 4
+                ];
+                let maxDot = -Infinity;
+                let bestFaceIndex = -1;
+                const worldMatrix = die.matrixWorld;
+                
+                localNormals.forEach((v, idx) => {
+                    const worldV = v.clone().applyMatrix4(new THREE.Matrix4().extractRotation(worldMatrix));
+                    const dot = worldV.dot(new THREE.Vector3(0, 1, 0));
+                    if (dot > maxDot) {
+                        maxDot = dot;
+                        bestFaceIndex = idx;
+                    }
+                });
+                results[val] = faces[bestFaceIndex];
+            }
+            
+            // Post back to server
+            try {
+                const res = await fetch('/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(results)
+                });
+                console.log("Auto-test report status:", await res.json());
+                
+                const banner = document.createElement('div');
+                banner.style.position = 'absolute';
+                banner.style.top = '10px';
+                banner.style.left = '50%';
+                banner.style.transform = 'translateX(-50%)';
+                banner.style.background = '#2ecc71';
+                banner.style.color = 'white';
+                banner.style.padding = '8px 16px';
+                banner.style.borderRadius = '20px';
+                banner.style.fontWeight = 'bold';
+                banner.style.zIndex = '9999';
+                banner.innerText = '✅ WebGL Dice Rotations verified and reported back successfully!';
+                document.body.appendChild(banner);
+            } catch (err) {
+                console.error("Failed to send report:", err);
+            }
+            
+            resetRotations();
+        }
+
+        window.onload = () => {
+            init();
+            setTimeout(autoTestAndReport, 500);
+        };
+    </script>
+</body>
+</html>

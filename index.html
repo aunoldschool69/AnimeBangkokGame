@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Thailand Tour">
+    <meta name="description" content="Embark on a cute colorful Thailand board game adventure! Roll dice, buy pastel properties, and upgrade toy resorts.">
+    <title>Thailand Toy Tour! Cute 2.5D Board Game</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff7d6' stroke='%231f2937' stroke-width='4'/%3E%3Ccircle cx='20' cy='20' r='4' fill='%231f2937'/%3E%3Ccircle cx='44' cy='20' r='4' fill='%231f2937'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%231f2937'/%3E%3Ccircle cx='20' cy='44' r='4' fill='%231f2937'/%3E%3Ccircle cx='44' cy='44' r='4' fill='%231f2937'/%3E%3C/svg%3E">
+    
+    <!-- Google Fonts: Fredoka (super cute rounded) and Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Global Error Capturing & CDN Diagnostics -->
+    <script>
+        window.hasGameLoaded = false;
+        window.capturedErrors = [];
+
+        window.addEventListener('error', function(event) {
+            var target = event.target || event.srcElement;
+            var isAssetError = target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK');
+            var assetUrl = target ? (target.src || target.href) : '';
+            var msg = event.message || 'Unknown runtime error';
+            var errorMsg = isAssetError ? 'Failed to load library: ' + assetUrl : msg;
+
+            if (isAssetError) {
+                fetch('/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'asset_error', message: errorMsg, url: assetUrl })
+                }).catch(function() {});
+            } else {
+                var url = event.filename || '';
+                var line = event.lineno || '';
+                var col = event.colno || '';
+                var errorStack = event.error ? event.error.stack : '';
+                var fullMsg = msg + ' at ' + url + ':' + line + ':' + col + '\nStack: ' + errorStack;
+                fetch('/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'runtime_error', message: fullMsg })
+                }).catch(function() {});
+            }
+
+            if (window.hasGameLoaded) return;
+            window.capturedErrors.push(errorMsg);
+            setTimeout(function() { showLoadingError(errorMsg, assetUrl); }, 500);
+        }, true);
+
+        // Forward console.error to /report
+        var originalConsoleError = console.error;
+        console.error = function() {
+            var args = Array.prototype.slice.call(arguments);
+            var msg = args.map(function(arg) {
+                return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+            }).join(' ');
+            var reportType = (/^(Failed to load asset:|There was an error loading|Failed to load library:)/.test(msg))
+                ? 'asset_error'
+                : 'console_error';
+            
+            fetch('/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: reportType, message: msg })
+            }).catch(function() {});
+            
+            originalConsoleError.apply(console, arguments);
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            var errorMsg = 'Promise rejection: ' + event.reason;
+            fetch('/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'runtime_error', message: errorMsg })
+            }).catch(function() {});
+
+            if (window.hasGameLoaded) return;
+            window.capturedErrors.push(errorMsg);
+            showLoadingError(errorMsg);
+        });
+
+        function showLoadingError(msg, url) {
+            var errBox = document.getElementById('loading-error-box');
+            var errText = document.getElementById('loading-error-text');
+            var loadingMsg = document.getElementById('loading-message');
+            var fill = document.getElementById('progress-fill');
+            if (errBox && errText) {
+                errBox.style.display = 'block';
+                if (url && (url.indexOf('three') !== -1 || url.indexOf('jsdelivr') !== -1)) {
+                    errText.innerText = "We couldn't connect to the Three.js 3D library CDN (jsdelivr.net). Some networks in Thailand restrict this CDN.";
+                } else {
+                    errText.innerText = msg.substring(0, 150) + (msg.length > 150 ? '...' : '');
+                }
+                if (loadingMsg) {
+                    loadingMsg.innerText = "Connection failed!";
+                    loadingMsg.style.color = "#ef4444";
+                }
+                if (fill) {
+                    fill.style.background = "#ef4444";
+                }
+            }
+        }
+    </script>
+
+    <!-- Dynamic CDN Selector and Polyfill Loader with Self-Healing Fallback -->
+    <script>
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var activeCdn = urlParams.get('cdn') || 'jsdelivr';
+            
+            var esModuleShimsUrl = "https://cdn.jsdelivr.net/npm/es-module-shims@1.6.3/dist/es-module-shims.js";
+            var threeUrl = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+            var addonsUrl = "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/";
+            
+            if (activeCdn === 'unpkg') {
+                esModuleShimsUrl = "https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js";
+                threeUrl = "https://unpkg.com/three@0.160.0/build/three.module.js";
+                addonsUrl = "https://unpkg.com/three@0.160.0/examples/jsm/";
+            }
+            
+            // Write the polyfill and importmap synchronously
+            document.write('<script async src="' + esModuleShimsUrl + '"><\/script>');
+            document.write('<script type="importmap">{"imports": {"three": "' + threeUrl + '", "three/addons/": "' + addonsUrl + '"}}<\/script>');
+        })();
+    </script>
+</head>
+<body>
+    <!-- Canvas for 3D Game Board -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen" class="ui-overlay active">
+        <div class="loading-content">
+            <div class="cute-logo-container">
+                <div class="logo-badge">THAILAND</div>
+                <h1 class="cute-title">TOY TOUR!</h1>
+                <div class="cute-sub">2.5D Mobile Party Game</div>
+            </div>
+            
+            <div class="loading-box">
+                <div id="loading-message">Polishing wooden blocks...</div>
+                <div class="cute-progress-container">
+                    <div id="progress-fill"></div>
+                </div>
+                <div id="loading-percentage">0%</div>
+            </div>
+            
+            <div class="loading-tips">
+                <span class="tip-icon"><i class="fa-solid fa-lightbulb"></i></span>
+                <span id="loading-tip-text">Upgrade your shops into cozy tall towers to collect double rent!</span>
+            </div>
+
+            <!-- CUTE DIAGNOSTIC ERROR BOX (Hidden by default) -->
+            <div id="loading-error-box" class="rounded-bubble-card" style="display: none; margin-top: 20px; background: #fee2e2; border: 3px solid #ef4444; color: #991b1b; padding: 15px; font-family: var(--font-cute); font-weight: 700; max-width: 320px; box-shadow: var(--toy-shadow-small); text-align: center; animation: pulse-shake 0.5s;">
+                <div style="font-size: 2.5rem; margin-bottom: 8px;">🌐🔌</div>
+                <div style="font-size: 1.1rem; margin-bottom: 6px; font-weight: 800;">CDN CONNECTION ISSUE DETECTED!</div>
+                <div style="font-size: 0.85rem; margin-bottom: 12px; font-weight: 600; line-height: 1.3;" id="loading-error-text">
+                    We couldn't connect to the Three.js 3D library CDN (jsdelivr.net). Please verify your internet connection.
+                </div>
+                <button id="btn-switch-cdn" class="cute-mini-btn" style="background: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark); font-weight: 800; font-size: 0.9rem; padding: 8px 16px; cursor: pointer; display: inline-block;">
+                    SWITCH TO UNPKG CDN 🔄
+                </button>
+            </div>
+        </div>
+        <div class="cute-loading-clouds"></div>
+    </div>
+
+    <!-- SPLASH / ENTER SCREEN (Required for Web Audio initialization) -->
+    <div id="splash-screen" class="ui-overlay">
+        <div class="splash-container">
+            <div class="cloud cloud-1"><i class="fa-solid fa-cloud"></i></div>
+            <div class="cloud cloud-2"><i class="fa-solid fa-cloud"></i></div>
+            
+            <!-- Language Selector Float -->
+            <div class="lang-selector-splash" style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+                <button id="btn-lang-th" class="cute-mini-btn active" style="font-weight: 800; font-size: 0.95rem; padding: 10px 18px; border-radius: 12px; cursor: pointer; border: 3px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); background: var(--pastel-yellow); color: var(--text-dark);">TH 🇹🇭</button>
+                <button id="btn-lang-en" class="cute-mini-btn" style="font-weight: 800; font-size: 0.95rem; padding: 10px 18px; border-radius: 12px; cursor: pointer; border: 3px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); background: #fff; color: var(--text-dark); margin-left: 8px;">EN 🇬🇧</button>
+            </div>
+            
+            <div class="splash-box">
+                <div id="splash-badge" class="splash-badge">เที่ยวเมืองไทย!</div>
+                <h2 class="splash-title">THAILAND<br><span class="highlight-mint">TOY TOUR</span></h2>
+                <p class="splash-desc">Roll dice, explore miniature floating cities, and buy cozy beach shops or pastel temples in this cute, family-friendly board adventure!</p>
+                
+                <button id="btn-enter-game" class="cute-party-btn main-play-btn asset-primary-btn">
+                    <span class="btn-bubble-content">START TOUR! <i class="fa-solid fa-dice"></i></span>
+                </button>
+                
+                <button id="btn-quick-start" class="cute-party-btn main-play-btn quick-start-btn asset-primary-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-top: 15px; border-color: var(--border-dark); box-shadow: 0 5px 0 var(--border-dark);">
+                    <span class="btn-bubble-content">QUICK START! ⚡</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARACTER SELECT SCREEN -->
+    <div id="char-select-screen" class="ui-overlay">
+        <!-- Toggle Lobby UI Visibility Button (Eye Icon) -->
+        <button id="btn-hide-lobby-ui" class="cute-mini-btn" style="position: absolute; top: 20px; left: 20px; z-index: 100; font-size: 1.25rem; background: rgba(255,255,255,0.75); border: 3.5px solid var(--border-dark); border-radius: 50%; width: 48px; height: 48px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--toy-shadow-small); transition: transform 0.2s;" title="Toggle UI Visibility">👁️</button>
+
+        <div class="select-container">
+            <div class="select-header">
+                <div id="select-badge" class="select-badge">เลือกตัวละคร</div>
+                <h2 class="select-title">CHOOSE YOUR TOURIST</h2>
+            </div>
+            
+            <div class="carousel-wrapper">
+                <button id="btn-prev-char" class="carousel-arrow" title="Previous Character">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                
+                <div id="selected-char-card" class="char-card pulse-shake" style="position: relative;">
+                    <!-- Lock Overlay -->
+                    <div id="char-lock-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(58,50,50,0.65); border-radius: 20px; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-cute); font-weight: 800; color: white;">
+                        <span style="font-size: 3rem; filter: drop-shadow(2px 2px 0 var(--border-dark));">🔒</span>
+                        <span style="font-size: 0.95rem; margin-top: 10px; text-transform: uppercase; background: var(--pastel-red); border: 2.5px solid var(--border-dark); padding: 4px 12px; border-radius: 10px; box-shadow: var(--toy-shadow-small); color: white;" id="char-lock-label">LOCKED</span>
+                    </div>
+                    
+                    <div class="char-card-body">
+                        <!-- Rarity Badge inside Card -->
+                        <div id="char-rarity-badge" class="rarity-badge" style="position: absolute; top: 12px; right: 12px; font-family: var(--font-cute); font-size: 0.65rem; font-weight: 900; border: 2px solid var(--border-dark); border-radius: 8px; padding: 2px 6px; text-transform: uppercase; background: #94a3b8; color: white; z-index: 10;">COMMON</div>
+                        
+                        <div class="char-emoji-badge" id="char-emoji">🐱</div>
+                        <h3 class="char-name" id="char-name">Toury Cat</h3>
+                        <p class="char-desc" id="char-desc">A charming little white porcelain cat with a cozy red scarf. Loves luck, blessings, and lottery prizes!</p>
+                        
+                        <div class="char-passive-box" id="char-passive-box">
+                            <div class="passive-badge"><i class="fa-solid fa-star"></i> PASSIVE ABILITY</div>
+                            <h4 class="passive-name" id="char-passive-name">Temple Blessing 🛕</h4>
+                            <p class="passive-desc" id="char-passive-desc">+20% coins from lottery wins, temples, and festival events!</p>
+                        </div>
+                        
+                        <div class="char-stats-container">
+                            <div class="stat-row">
+                                <span class="stat-label">SPEED ⚡</span>
+                                <div class="stat-bar-bg">
+                                    <div class="stat-bar-fill" id="stat-speed" style="width: 60%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">COZY 🏰</span>
+                                <div class="stat-bar-bg">
+                                    <div class="stat-bar-fill" id="stat-cost" style="width: 40%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">LUCK 🍀</span>
+                                <div class="stat-bar-bg">
+                                    <div class="stat-bar-fill" id="stat-luck" style="width: 90%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">RENT 💰</span>
+                                <div class="stat-bar-bg">
+                                    <div class="stat-bar-fill" id="stat-rent" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="btn-next-char" class="carousel-arrow" title="Next Character">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Customize Dice & Cosmetics (Progression Unlocks) -->
+            <div class="customizer-panel rounded-bubble-card first-time-hidden">
+                <div class="customizer-header"><i class="fa-solid fa-wand-magic-sparkles"></i> ACCESSORIES & DICE STYLES</div>
+                <div class="customizer-body">
+                    <div class="customizer-row" style="justify-content: space-between; align-items: center; width: 100%;">
+                        <span class="customizer-label">DICE STYLES:</span>
+                        <button id="btn-open-dice-collection" class="cute-mini-btn active" style="font-weight: 800; font-size: 0.82rem; padding: 6px 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; border: 2.5px solid var(--border-dark); box-shadow: 0 3px 0 var(--border-dark); background: var(--pastel-yellow); color: var(--text-dark);">
+                            DICE VAULT 🎲✨
+                        </button>
+                    </div>
+                    <div class="customizer-row" style="margin-top: -6px; margin-bottom: 8px;">
+                        <div class="customizer-options" id="dice-style-options">
+                            <button class="cute-mini-btn active" data-dice="white" id="dice-classic-btn">Classic</button>
+                            <button class="cute-mini-btn locked" data-dice="gold" id="dice-gold-btn">Gold 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="emerald" id="dice-emerald-btn">Emerald 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="songkran" id="dice-songkran-btn">Songkran 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="floating_market" id="dice-market-btn">Floating Market 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="naga" id="dice-naga-btn">Naga 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="garuda" id="dice-garuda-btn">Garuda 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="yak" id="dice-yak-btn">Yak 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="temple" id="dice-temple-btn">Temple 🔒</button>
+                            <button class="cute-mini-btn locked" data-dice="lantern" id="dice-lantern-btn">Lantern 🔒</button>
+                        </div>
+                    </div>
+                    
+                    <div class="customizer-row">
+                        <span class="customizer-label">SKINS:</span>
+                        <div class="customizer-options">
+                            <label class="cute-checkbox-label">
+                                <input type="checkbox" id="cosmetic-crown" disabled> 
+                                <span id="lbl-cosmetic-crown">Crown 👑 <small id="lbl-crown-locked">(Lv.3)</small></span>
+                            </label>
+                            <label class="cute-checkbox-label" style="margin-left: 10px;">
+                                <input type="checkbox" id="cosmetic-glasses" disabled> 
+                                <span id="lbl-cosmetic-glasses">Glasses 🕶️ <small id="lbl-glasses-locked">(Lv.5)</small></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-open-collection" class="cute-party-btn collection-btn first-time-hidden" style="background-color: var(--pastel-pink); margin-top: 15px; margin-bottom: -5px;">
+                <span class="btn-bubble-content">STICKER ALBUM 📖</span>
+            </button>
+            
+            <button id="btn-open-missions" class="cute-party-btn missions-btn first-time-hidden" style="background-color: var(--pastel-yellow); color: var(--text-dark); margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">DAILY MISSIONS 📅</span>
+            </button>
+ 
+            <button id="btn-open-achievements" class="cute-party-btn achievements-btn first-time-hidden" style="background-color: var(--pastel-mint); color: var(--text-dark); margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">PASSPORT STAMPS 🏆</span>
+            </button>
+            
+            <button id="btn-open-gallery" class="cute-party-btn gallery-btn first-time-hidden" style="background-color: var(--pastel-purple); color: white; margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">HERO GALLERY 🐹</span>
+            </button>
+            
+            <button id="btn-open-vault" class="cute-party-btn vault-btn first-time-hidden" style="background-color: #06b6d4; color: white; margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">TREASURE VAULT 💎</span>
+            </button>
+            
+            <button id="btn-open-lucky-wheel" class="cute-party-btn lucky-wheel-btn first-time-hidden" style="background-color: #ec4899; color: white; margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">LUCKY WHEEL 🎡</span>
+            </button>
+            
+            <button id="btn-open-daily-login" class="cute-party-btn daily-login-btn first-time-hidden" style="background-color: #f59e0b; color: white; margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">DAILY REWARDS 🎁</span>
+            </button>
+            
+            <button id="btn-open-profile" class="cute-party-btn profile-btn first-time-hidden" style="background-color: #d97706; color: white; margin-top: 10px; margin-bottom: -5px; border-color: var(--border-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">MY PASSPORT 🛂</span>
+            </button>
+            
+            <!-- GAME MODE SELECTOR -->
+            <div class="first-time-hidden" style="display: flex; gap: 8px; margin-top: 15px; width: 100%;">
+                <button id="btn-mode-party" class="cute-mini-btn active" style="flex: 1; font-weight: 800; font-size: 0.82rem; padding: 10px 5px; border-radius: 12px; border: 3px solid var(--border-dark); box-shadow: 0 3px 0 var(--border-dark); cursor: pointer;" title="Free play Party Mode / โหมดธรรมดา">📦 PARTY PLAY</button>
+                <button id="btn-mode-campaign" class="cute-mini-btn" style="flex: 1; font-weight: 800; font-size: 0.82rem; padding: 10px 5px; border-radius: 12px; border: 3px solid var(--border-dark); box-shadow: 0 3px 0 var(--border-dark); background: var(--pastel-yellow); color: var(--text-dark); cursor: pointer;" title="Sequentially unlock Campaign Mode / โหมดเนื้อเรื่อง">🗺️ CAMPAIGN ROAD</button>
+            </div>
+            
+            <button id="btn-continue-adventure" class="cute-party-btn ready-btn asset-confirm-btn" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-top: 10px;">
+                <span class="btn-bubble-content">CONTINUE ADVENTURE! <i class="fa-solid fa-backpack"></i></span>
+            </button>
+
+            <button id="btn-new-game" class="cute-party-btn ready-btn asset-primary-btn" style="display: none; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); margin-top: 10px;">
+                <span class="btn-bubble-content">NEW ADVENTURE! <i class="fa-solid fa-rotate-left"></i></span>
+            </button>
+            
+            <button id="btn-ready-tour" class="cute-party-btn ready-btn asset-confirm-btn" style="margin-top: 10px;">
+                <span class="btn-bubble-content">READY TO TOUR! <i class="fa-solid fa-plane-departure"></i></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAMEPLAY HUD -->
+    <div id="game-hud">
+        <!-- Top Center: Seasonal Festival Banner Marquee -->
+        <div id="hud-festival-banner" class="rounded-bubble-card" style="display: none; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; font-family: var(--font-cute); font-weight: 800; font-size: 0.85rem; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border: 3px solid var(--border-dark); border-radius: 20px; padding: 6px 16px; box-shadow: var(--toy-shadow-small); align-items: center; gap: 8px;">
+            <span id="festival-banner-emoji" style="font-size: 1.2rem;">🎪</span>
+            <span id="festival-banner-text">FESTIVAL ACTIVE!</span>
+        </div>
+
+        <div class="hud-resource-bar" aria-label="Player resources">
+            <div class="hud-resource-chip hud-coins-chip">
+                <span class="hud-resource-icon"><span class="ui-coin-icon" aria-hidden="true"></span></span>
+                <span class="hud-resource-copy">
+                    <span class="hud-resource-label">Coins</span>
+                    <span id="hud-player-coins" class="hud-resource-value">1,500</span>
+                </span>
+            </div>
+            <div class="hud-resource-chip hud-gems-chip">
+                <span class="hud-resource-icon"><i class="fa-solid fa-gem"></i></span>
+                <span class="hud-resource-copy">
+                    <span class="hud-resource-label">Gems</span>
+                    <span id="hud-player-gems" class="hud-resource-value">48</span>
+                </span>
+            </div>
+            <div class="hud-resource-chip hud-energy-chip">
+                <span class="hud-resource-icon"><i class="fa-solid fa-bolt"></i></span>
+                <span class="hud-resource-copy">
+                    <span class="hud-resource-label">Energy</span>
+                    <span id="hud-player-energy" class="hud-resource-value">5/5</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Top Left: Player Info Card -->
+        <!-- Top Left: Party Players List (Dynamic) -->
+        <div id="hud-party-leaderboard" class="hud-party-leaderboard">
+            <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Top Right: Location & Turn Indicator -->
+        <div class="hud-turn-card rounded-bubble-card">
+            <div id="hud-active-turn" class="active-turn-indicator player-turn">YOUR TURN 🐱</div>
+            <div id="hud-round-counter" class="round-counter-indicator">ROUND 1/15</div>
+            <div id="hud-ranking" class="round-counter-indicator hud-ranking-indicator">RANK #1</div>
+            <div id="hud-time-of-day" class="round-counter-indicator" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark); margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; border: 2.5px solid var(--border-dark);">
+                <span id="tod-indicator-emoji">🌅</span>
+                <span id="tod-indicator-text">MORNING</span>
+            </div>
+            <div id="hud-weather" class="round-counter-indicator" style="background-color: var(--pastel-mint); border-color: var(--border-dark); color: var(--text-dark); margin-top: 4px; margin-left: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; border: 2.5px solid var(--border-dark);">
+                <span id="weather-indicator-emoji">☀️</span>
+                <span id="weather-indicator-text">SUNNY</span>
+            </div>
+            
+            <!-- Cute Level & XP Progression HUD -->
+            <div class="hud-xp-badge ui-xp-asset" style="margin: 8px 0; padding: 6px; border: 2px solid var(--border-dark); border-radius: 10px; background-color: rgba(255,255,255,0.7); display: flex; flex-direction: column; gap: 3px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: var(--text-dark);">
+                    <span class="ui-xp-icon" aria-hidden="true"></span>
+                    <span id="hud-level-text">LV. 1 TOURIST</span>
+                    <span id="hud-xp-text">0/1000 XP</span>
+                </div>
+                <div class="hud-xp-bar-bg" style="width: 100%; height: 10px; border: 2px solid var(--border-dark); border-radius: 5px; background: #fff; overflow: hidden; position: relative;">
+                    <div id="hud-xp-bar-fill" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--pastel-yellow), var(--pastel-pink)); transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
+                </div>
+            </div>
+
+            <div class="location-badge"><i class="fa-solid fa-map-pin"></i> CURRENT LOCATION</div>
+            <div id="current-location-text" class="location-name">START TILE</div>
+            <div id="tile-owner-text" class="location-owner">Bank owned</div>
+        </div>
+
+        <!-- Bottom Left: Properties Owned Board -->
+        <div class="hud-properties-board rounded-bubble-card">
+            <div class="board-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span><i class="fa-solid fa-hotel"></i> TOY RESORTS (<span id="resort-count">0</span>/12)</span>
+                <button id="btn-open-collection-panel" class="hud-book-link-btn" title="Open Sticker Album / สมุดสะสม" style="background: var(--pastel-pink); border: 2px solid var(--border-dark); border-radius: 8px; color: white; padding: 2px 6px; font-size: 0.65rem; font-family: var(--font-cute); font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--border-dark); display: flex; align-items: center; gap: 4px; transition: transform 0.1s; outline: none; margin-left: 5px;">
+                    <i class="fa-solid fa-book"></i> ALBUM
+                </button>
+                <button id="btn-open-missions-panel" class="hud-book-link-btn" title="Open Daily Missions / ภารกิจประจำวัน" style="background: var(--pastel-yellow); border: 2px solid var(--border-dark); border-radius: 8px; color: var(--text-dark); padding: 2px 6px; font-size: 0.65rem; font-family: var(--font-cute); font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--border-dark); display: flex; align-items: center; gap: 4px; transition: transform 0.1s; outline: none; margin-left: 5px;">
+                    <i class="fa-solid fa-calendar-check"></i> DAILY
+                </button>
+                <button id="btn-open-achievements-panel" class="hud-book-link-btn" title="Open Achievements / ถ้วยรางวัลเกียรติยศ" style="background: var(--pastel-mint); border: 2px solid var(--border-dark); border-radius: 8px; color: var(--text-dark); padding: 2px 6px; font-size: 0.65rem; font-family: var(--font-cute); font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--border-dark); display: flex; align-items: center; gap: 4px; transition: transform 0.1s; outline: none; margin-left: 5px;">
+                    <i class="fa-solid fa-trophy"></i> BADGES
+                </button>
+                <button id="btn-open-gallery-panel" class="hud-book-link-btn" title="Open Character Gallery / ทำเนียบตัวละคร" style="background: var(--pastel-purple); border: 2px solid var(--border-dark); border-radius: 8px; color: white; padding: 2px 6px; font-size: 0.65rem; font-family: var(--font-cute); font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--border-dark); display: flex; align-items: center; gap: 4px; transition: transform 0.1s; outline: none; margin-left: 5px;">
+                    <i class="fa-solid fa-paw"></i> HEROES
+                </button>
+            </div>
+            <!-- District Set Collection Progress -->
+            <div class="district-set-section" style="width: 100%; border-bottom: 2.5px dashed var(--border-dark); padding-bottom: 12px; margin-bottom: 12px; font-family: var(--font-cute);">
+                <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">District Sets / เซ็ตสะสมเมืองหลวง 🗺️</div>
+                <div id="district-progress-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </div>
+            
+            <div id="properties-grid" class="properties-grid">
+                <!-- Dynamically populated tags of owned tiles -->
+                <div class="no-properties-text">No properties bought yet!</div>
+            </div>
+        </div>
+
+        <nav class="hud-bottom-nav" aria-label="Game navigation">
+            <button id="btn-nav-home" class="hud-nav-item active" type="button" title="Home">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </button>
+            <button id="btn-open-collection-hud" class="hud-nav-item" type="button" title="Collection">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Collection</span>
+            </button>
+            <button id="btn-open-gallery-hud" class="hud-nav-item" type="button" title="Shop">
+                <i class="fa-solid fa-store"></i>
+                <span>Shop</span>
+            </button>
+            <button id="btn-open-missions-hud" class="hud-nav-item" type="button" title="Missions">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Missions</span>
+            </button>
+            <button id="btn-open-rewards-hud" class="hud-nav-item" type="button" title="Rewards">
+                <i class="fa-solid fa-gift"></i>
+                <span>Rewards</span>
+            </button>
+            <button id="btn-settings-toggle" class="hud-nav-item" type="button" title="Settings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- Bottom Center: Bubbly Roll Dice Button -->
+        <div class="hud-dice-action">
+            <div class="hud-roll-mascot" aria-hidden="true">
+                <span class="hud-roll-mascot-face">🐱</span>
+                <span class="hud-roll-sparkle sparkle-a"></span>
+                <span class="hud-roll-sparkle sparkle-b"></span>
+            </div>
+            <button id="btn-roll-dice" class="cute-party-btn roll-btn asset-primary-btn">
+                <span class="btn-bubble-content">ROLL! 🎲</span>
+            </button>
+        </div>
+
+        <!-- Bottom Right: Cheerful Soundtrack / Audio controls -->
+        <div class="hud-audio-panel rounded-bubble-card">
+            <div class="audio-control-group">
+                <button id="btn-toggle-music" class="circle-bubble-btn active" title="Toggle Party Music">
+                    <i class="fa-solid fa-music"></i>
+                </button>
+                <input type="range" id="slider-music-volume" min="0" max="1" step="0.05" value="0.35" class="cute-volume-slider slider-music" title="Music Volume">
+            </div>
+            <div class="audio-control-group">
+                <button id="btn-toggle-sfx" class="circle-bubble-btn active" title="Toggle Sound Effects">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+                <input type="range" id="slider-sfx-volume" min="0" max="1" step="0.05" value="0.6" class="cute-volume-slider slider-sfx" title="SFX Volume">
+            </div>
+            <div class="audio-control-group">
+                <button id="btn-toggle-ambient" class="circle-bubble-btn active" title="Toggle Map Ambience">
+                    <i class="fa-solid fa-wind"></i>
+                </button>
+                <input type="range" id="slider-ambient-volume" min="0" max="1" step="0.05" value="0.4" class="cute-volume-slider slider-ambient" title="Ambience Volume">
+            </div>
+            <div class="audio-control-group">
+                <button id="btn-toggle-vibration" class="circle-bubble-btn active" title="Toggle Haptic Vibration">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </button>
+            </div>
+            <div class="audio-control-group" style="margin-left: 8px;">
+                <button id="btn-toggle-lang" class="circle-bubble-btn active" title="Toggle Language / เปลี่ยนภาษา" style="font-weight: 800; font-size: 0.75rem; font-family: var(--font-cute); line-height: 1; padding: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 0.8rem; font-family: var(--font-cute); font-weight: 800;">TH</span>
+                </button>
+            </div>
+            <div class="audio-control-group" style="margin-left: 8px;">
+                <button id="btn-manual-save" class="circle-bubble-btn" title="Save Game progress / บันทึกเกม" style="background-color: var(--pastel-pink); color: white; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                </button>
+            </div>
+            <div class="audio-control-group" style="margin-left: 8px;">
+                <button id="btn-photo-mode" class="circle-bubble-btn" title="Take a Travel Postcard / โหมดถ่ายรูปโปสการ์ด" style="background-color: var(--pastel-mint); color: var(--text-dark); display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+            </div>
+            <div class="soundtrack-info" id="soundtrack-display">Lo-Fi Lobby Vibe</div>
+        </div>
+
+        <!-- Mini Alert Log (Top-Center popups for dice roll score / card descriptions) -->
+        <div id="hud-alert-log" class="hud-alert-log">
+            Rolled a 4!
+        </div>
+    </div>
+
+    <!-- INTERACTIVE POPUP MODALS -->
+    
+    <!-- 1. BUY PROPERTY POPUP -->
+    <div id="buy-property-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box scale-up-card">
+            <h3 class="modal-header">COZY INVESTMENT!</h3>
+            
+            <div class="property-preview-card">
+                <div id="prop-color-bar" class="prop-color-bar pink-bar"></div>
+                <div class="prop-card-body">
+                    <div id="prop-icon" class="prop-card-icon">🏖️</div>
+                    <h4 id="prop-name" class="prop-card-name">Pattaya Beach</h4>
+                    <p id="prop-desc" class="prop-card-desc">Cute yellow beach umbrellas and a miniature coconut tree!</p>
+                    <!-- District Badge -->
+                    <div id="prop-district-badge" style="display: none; font-size: 0.68rem; font-weight: 900; font-family: var(--font-cute); border: 2.2px solid var(--border-dark); border-radius: 8px; padding: 2px 8px; text-transform: uppercase; margin-top: 6px; display: inline-block; box-shadow: var(--toy-shadow-small); letter-spacing: 0.5px;"></div>
+                </div>
+            </div>
+
+            <div class="purchase-stats">
+                <div class="stat-line">
+                    <span id="lbl-buy-price-text">Cottage Price:</span>
+                    <span class="price-val"><span class="ui-coin-icon" aria-hidden="true"></span> <span id="prop-buy-price">200</span></span>
+                </div>
+                <div class="stat-line">
+                    <span id="lbl-buy-rent-text">Rent Fee:</span>
+                    <span class="rent-val"><span class="ui-coin-icon" aria-hidden="true"></span> <span id="prop-rent-price">40</span></span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-buy-no" class="cute-action-btn btn-grey">PASS</button>
+                <button id="btn-buy-yes" class="cute-action-btn btn-green asset-confirm-btn">BUY LAND! <span class="ui-coin-icon" aria-hidden="true"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DISTRICT COMPLETED POPUP -->
+    <div id="district-completed-popup" class="rounded-bubble-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85); z-index: 2100; font-family: var(--font-cute); background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(254, 253, 245, 0.98) 100%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 4.5px solid var(--border-dark); border-radius: 28px; padding: 25px 35px; width: 310px; box-shadow: var(--toy-shadow-large); text-align: center; opacity: 0; transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        <div style="font-size: 3.8rem; margin-bottom: 8px; filter: drop-shadow(2px 3px 0 rgba(0,0,0,0.1));" id="dist-pop-emoji">🏮</div>
+        <div style="font-size: 0.72rem; font-weight: 800; color: #f97316; letter-spacing: 1.2px; text-transform: uppercase; background: #ffedd5; border: 2px solid var(--border-dark); border-radius: 10px; display: inline-block; padding: 2px 10px; margin-bottom: 6px;" id="dist-pop-sub">DISTRICT COMPLETED! 🏆</div>
+        <h3 style="font-size: 1.35rem; font-weight: 900; margin: 6px 0; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px;" id="dist-pop-title">CHINATOWN SET</h3>
+        <p style="font-size: 0.82rem; font-weight: 700; color: #64748b; line-height: 1.35; margin-bottom: 15px;" id="dist-pop-desc">You collected Yaowarat, Night Market, and Khao San Road!</p>
+        
+        <!-- Rewards Grid -->
+        <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 18px;">
+            <div style="background: var(--pastel-yellow); color: var(--text-dark); border: 2.5px solid var(--border-dark); border-radius: 14px; padding: 5px 12px; font-weight: 800; font-size: 0.88rem; box-shadow: var(--toy-shadow-small);">
+                <span class="ui-coin-icon" aria-hidden="true"></span> <span id="dist-pop-coins">+500</span>
+            </div>
+            <div style="background: var(--pastel-mint); color: var(--text-dark); border: 2.5px solid var(--border-dark); border-radius: 14px; padding: 5px 12px; font-weight: 800; font-size: 0.88rem; box-shadow: var(--toy-shadow-small);">
+                <span class="ui-xp-icon" aria-hidden="true"></span> <span id="dist-pop-xp">+150 XP</span>
+            </div>
+        </div>
+        
+        <!-- District Badge Display -->
+        <div id="dist-pop-badge" style="display: inline-block; font-size: 0.82rem; font-weight: 900; background: #ef4444; color: white; border: 2.5px solid var(--border-dark); padding: 6px 16px; border-radius: 14px; box-shadow: var(--toy-shadow-small); text-transform: uppercase; letter-spacing: 0.5px;">
+            🏮 CHINATOWN
+        </div>
+    </div>
+
+    <!-- 2. UPGRADE PROPERTY POPUP -->
+    <div id="upgrade-property-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box scale-up-card">
+            <h3 id="upgrade-modal-header" class="modal-header">UPGRADE COTTAGE!</h3>
+            
+            <div class="property-preview-card">
+                <div id="upgrade-color-bar" class="prop-color-bar green-bar"></div>
+                <div class="prop-card-body">
+                    <div id="upgrade-icon" class="prop-card-icon">🛕</div>
+                    <h4 id="upgrade-name" class="prop-card-name">Wat Arun</h4>
+                    <p id="upgrade-desc" class="prop-card-desc">Upgrade your shop into a cozy pastel tower to double rent earnings!</p>
+                </div>
+            </div>
+
+            <div class="purchase-stats">
+                <div class="stat-line">
+                    <span id="lbl-upgrade-price-text">Upgrade Price:</span>
+                    <span class="price-val"><span class="ui-coin-icon" aria-hidden="true"></span> <span id="prop-upgrade-price">120</span></span>
+                </div>
+                <div class="stat-line">
+                    <span id="lbl-upgrade-rent-text">New Rent Fee:</span>
+                    <span class="rent-val-green"><span class="ui-coin-icon" aria-hidden="true"></span> <span id="prop-new-rent-price">100</span></span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-upgrade-no" class="cute-action-btn btn-grey">PASS</button>
+                <button id="btn-upgrade-yes" class="cute-action-btn btn-yellow asset-primary-btn">UPGRADE! 🏗️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. RENT NOTICE POPUP -->
+    <div id="rent-property-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box scale-up-card border-red">
+            <h3 class="modal-header header-red">PAY COZY RENT!</h3>
+            
+            <div class="rent-notice-body">
+                <div class="rent-emoji">💸</div>
+                <p id="rent-notice-text">Oh no! You landed on <span id="rent-land-owner" class="highlight-text">Toury's</span> resort <strong id="rent-land-name">Pattaya Beach</strong>!</p>
+                <p class="rent-bill" id="rent-bill-text">Rent Bill: <span class="highlight-red">💰 <span id="rent-bill-price">40</span></span></p>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-pay-rent" class="cute-action-btn btn-red">PAY RENT 💸</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. CHANCE CARD EVENT ENVELOPE -->
+    <div id="chance-card-modal" class="modal-overlay ui-overlay">
+        <div class="envelope-container">
+            <!-- Back flap -->
+            <div class="envelope-base">
+                <!-- Card inside -->
+                <div class="chance-card-paper">
+                    <div class="card-crown">👑 CHANCE CARD! 👑</div>
+                    <div id="chance-card-rarity" class="card-badge card-rarity-badge rarity-common">COMMON</div>
+                    <div id="chance-card-icon" class="card-icon">🐘</div>
+                    <h4 id="chance-card-title" class="card-title">Elephant Ride!</h4>
+                    <p id="chance-card-desc" class="card-desc">You feed a cute baby elephant bananas. It blesses you with good luck! Gain 200 coins.</p>
+                <button id="btn-close-chance" class="cute-action-btn btn-yellow card-close-btn asset-primary-btn">AWESOME! ✨</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4.1 BANGKOK EVENT POPUP -->
+    <div id="bangkok-event-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box event-box scale-up-card" id="event-modal-card" style="text-align: center; border: 4px solid var(--border-dark); border-radius: 36px; padding: 25px; width: 90%; max-width: 440px; margin: auto; background: var(--cream-white); box-shadow: var(--toy-shadow-large);">
+            <h3 class="modal-header" id="event-header-bg" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.6rem; color: white; border: 3px solid var(--border-dark); border-radius: 16px; padding: 10px 20px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin: -45px auto 20px auto; display: inline-block; box-shadow: var(--toy-shadow-small); text-transform: uppercase;">BANGKOK EVENT! 🎉</h3>
+            
+            <div class="event-notice-body" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px 0;">
+                <div class="event-emoji-large" id="event-card-icon" style="font-size: 5rem; filter: drop-shadow(3px 3px 0 var(--border-dark)); margin: 10px 0; animation: float-sway 2.5s ease-in-out infinite;">🎉</div>
+                <h4 id="event-card-title" class="event-card-title" style="font-family: var(--font-cute); font-size: 1.8rem; font-weight: 800; color: var(--text-dark); -webkit-text-stroke: 1.5px var(--border-dark); margin: 5px 0 10px 0;">Songkran Festival!</h4>
+                <p id="event-card-desc" class="event-card-desc" style="font-family: var(--font-cute); font-weight: 700; color: #4b5563; font-size: 1.05rem; line-height: 1.4; max-width: 320px; margin: 0 auto 15px auto;">Water fight time! You splash cool water on everyone.</p>
+                
+                <div class="event-reward-pill" id="event-reward-pill" style="display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; background: var(--pastel-mint); border: 3px solid var(--border-dark); padding: 8px 20px; border-radius: 20px; box-shadow: var(--toy-shadow-small); margin-top: 5px; color: var(--text-dark);">
+                    <span id="event-reward-icon">💰</span>
+                    <span id="event-reward-text">+500 Coins</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4.1 BANGKOK EVENT POPUP -->
+    <div id="bangkok-event-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box event-box scale-up-card" id="event-modal-card" style="text-align: center; border: 4px solid var(--border-dark); border-radius: 36px; padding: 25px; width: 90%; max-width: 440px; margin: auto; background: var(--cream-white); box-shadow: var(--toy-shadow-large);">
+            <h3 class="modal-header" id="event-header-bg" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.6rem; color: white; border: 3px solid var(--border-dark); border-radius: 16px; padding: 10px 20px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin: -45px auto 20px auto; display: inline-block; box-shadow: var(--toy-shadow-small); text-transform: uppercase;">BANGKOK EVENT! 🎉</h3>
+            
+            <div class="event-notice-body" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px 0;">
+                <div class="event-emoji-large" id="event-card-icon" style="font-size: 5rem; filter: drop-shadow(3px 3px 0 var(--border-dark)); margin: 10px 0; animation: float-sway 2.5s ease-in-out infinite;">🎉</div>
+                <h4 id="event-card-title" class="event-card-title" style="font-family: var(--font-cute); font-size: 1.8rem; font-weight: 800; color: var(--text-dark); -webkit-text-stroke: 1.5px var(--border-dark); margin: 5px 0 10px 0;">Songkran Festival!</h4>
+                <p id="event-card-desc" class="event-card-desc" style="font-family: var(--font-cute); font-weight: 700; color: #4b5563; font-size: 1.05rem; line-height: 1.4; max-width: 320px; margin: 0 auto 15px auto;">Water fight time! You splash cool water on everyone.</p>
+                
+                <div class="event-reward-pill" id="event-reward-pill" style="display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; background: var(--pastel-mint); border: 3px solid var(--border-dark); padding: 8px 20px; border-radius: 20px; box-shadow: var(--toy-shadow-small); margin-top: 5px; color: var(--text-dark);">
+                    <span id="event-reward-icon">💰</span>
+                    <span id="event-reward-text">+500 Coins</span>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; width: 100%;">
+                <button id="btn-close-event" class="cute-action-btn btn-green asset-confirm-btn" style="width: 100%; box-shadow: 0 5px 0 var(--border-dark); font-family: var(--font-cute); font-weight: 800; font-size: 1.15rem; padding: 12px; border-radius: 16px; border: 3px solid var(--border-dark); background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; cursor: pointer; outline: none; transition: transform 0.1s;">AWESOME! ✨</button>
+                </div>
+                
+                            </div>
+        </div>
+    </div>
+
+    <!-- 5. MATCH RESULTS MODAL -->
+    <div id="results-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box results-box scale-up-card" style="position: relative; overflow: visible;">
+            <!-- Floating Fireworks Canvas Overlay inside the modal -->
+            <div id="results-fireworks-container" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 32px; z-index: 1;"></div>
+            
+            <div class="results-header" style="position: relative; z-index: 2;">
+                <div class="select-badge bg-gold" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark);" id="results-badge-text">TOUR COMPLETED! 🏆</div>
+                <h2 class="results-title" id="results-title-text">CHAMPIONSHIP RESULTS</h2>
+                <div id="results-board-name" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.15rem; color: var(--pastel-pink); margin-top: -5px; text-shadow: 1px 1px 0 var(--border-dark); text-align: center; z-index: 2; position: relative;"></div>
+            </div>
+            
+            <div class="winner-banner" style="position: relative; z-index: 2;">
+                <div class="winner-trophy-container">
+                    <div class="halo-sunburst" id="winner-halo-sunburst"></div>
+                    <div class="trophy-cup" id="results-trophy-cup">🏆</div>
+                </div>
+                <div class="winner-char-display-row">
+                    <div id="winner-crown">👑</div>
+                    <div id="winner-avatar" class="celebration-bounce">🐱</div>
+                </div>
+                <div id="winner-name">Toury Cat wins the Thailand Cup!</div>
+            </div>
+            
+            <!-- Winner Detailed Stats Panel -->
+            <div class="results-stats-panel" id="results-stats-panel" style="position: relative; z-index: 2; margin-bottom: 15px;">
+                <div class="results-stats-title" id="results-stats-title">🏅 WINNER STATISTICS 🏅</div>
+                <div class="results-stats-grid">
+                    <div class="results-stats-card">
+                        <div class="stat-card-title" id="lbl-stat-money">FINAL WEALTH</div>
+                        <div class="stat-card-value pulse-text" id="stat-final-money">💰 1,500</div>
+                    </div>
+                    <div class="results-stats-card">
+                        <div class="stat-card-title" id="lbl-stat-props">PROPERTIES</div>
+                        <div class="stat-card-value" id="stat-properties-owned">🏡 0 Resorts</div>
+                    </div>
+                    <div class="results-stats-card">
+                        <div class="stat-card-title" id="lbl-stat-upgrades">UPGRADES</div>
+                        <div class="stat-card-value" id="stat-upgrades-completed">🏗️ 0 Levels</div>
+                    </div>
+                    <div class="results-stats-card full-width">
+                        <div class="stat-card-title" id="lbl-stat-mvp">CROWN LANDMARK (MVP)</div>
+                        <div class="stat-card-value valuable-prop-badge" id="stat-most-valuable">🌟 None</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Your Rewards Panel -->
+            <div class="results-rewards-panel" id="results-tour-rewards-panel" style="position: relative; z-index: 2; margin-bottom: 15px; display: none;">
+                <div class="results-stats-title" id="results-rewards-title-own" style="font-family: var(--font-cute); font-weight: 800; font-size: 0.9rem; color: var(--text-dark); text-align: center; margin-bottom: 4px;">🎁 YOUR TOUR REWARDS 🎁</div>
+                <div style="display: flex; align-items: center; justify-content: center; background: #ffffff; border: 3px solid var(--border-dark); border-radius: 20px; padding: 10px; box-shadow: 0 4px 0 var(--border-dark); margin-top: 5px;">
+                    <span id="results-tour-reward-icon" style="font-size: 2.2rem; margin-right: 10px; filter: drop-shadow(0 2px 0 var(--border-dark));">🔮</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                        <span id="results-tour-reward-name" style="font-family: var(--font-cute); font-weight: 900; font-size: 0.95rem; color: var(--text-dark);">Epic Chest</span>
+                        <span id="results-tour-reward-desc" style="font-family: var(--font-cute); font-size: 0.68rem; color: var(--text-muted); font-weight: 800;">Added to your Chest Vault!</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rankings-list" id="results-rankings" style="position: relative; z-index: 2;">
+                <!-- Populated dynamically via JS -->
+            </div>
+            
+            <div class="awards-badge-section" style="position: relative; z-index: 2;">
+                <div class="awards-badge-title" id="results-awards-title">🏅 FUN MATCH AWARDS 🏅</div>
+                <div class="awards-grid" id="results-awards">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+            
+            <div class="modal-actions results-actions" style="margin-top: 15px; position: relative; z-index: 2;">
+                <button id="btn-rematch" class="cute-action-btn btn-green asset-confirm-btn">PLAY AGAIN 🎲</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. TURN START POPUP OVERLAY (Nintendo Style) -->
+    <div id="turn-start-overlay" class="modal-overlay ui-overlay">
+        <div class="turn-start-card pulse-shake">
+            <div class="turn-avatar-container">
+                <div id="turn-avatar" class="turn-avatar-bubble">🐱</div>
+            </div>
+            <div id="turn-badge" class="turn-badge-pill">TOURY CAT'S TURN</div>
+            <h2 id="turn-title" class="turn-main-title">GET READY TO ROLL!</h2>
+            <div class="turn-sparkles-ui">✨🎲✨</div>
+        </div>
+    </div>
+
+    <!-- 7. INTERACTIVE MINI-GAME SYSTEM OVERLAY -->
+    <div id="minigame-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box minigame-box scale-up-card">
+            <!-- Header -->
+            <div class="results-header" style="margin-bottom: 12px;">
+                <div class="select-badge bg-gold" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark);" id="minigame-type-badge">PARTY MINI-GAME! 🎮</div>
+                <h2 class="results-title" id="minigame-title">THAI TEA RUSH</h2>
+            </div>
+            
+            <!-- Instructions and start screen -->
+            <div id="minigame-intro-view" class="minigame-subview active-view">
+                <div class="modal-icon" id="minigame-icon" style="font-size: 5rem; margin: 15px 0;">🥤</div>
+                <p id="minigame-instructions" style="font-family: var(--font-cute); font-weight: 700; color: var(--text-dark); font-size: 1.1rem; margin-bottom: 25px; line-height: 1.5;">Tap the giant shaker button as fast as possible to brew sweet Thai tea before the timer runs out! 🥤</p>
+                <button id="btn-start-minigame" class="cute-action-btn btn-yellow asset-primary-btn">READY... GO! 🏁</button>
+            </div>
+
+            <!-- Countdown 3, 2, 1 overlay -->
+            <div id="minigame-countdown-view" class="minigame-subview">
+                <div id="minigame-countdown-number" style="font-family: var(--font-cute); font-weight: 800; font-size: 6rem; color: var(--pastel-red); text-shadow: 4px 4px 0 var(--border-dark); -webkit-text-stroke: 3px var(--border-dark); animation: countdown-pop 1s infinite;">3</div>
+            </div>
+
+            <!-- Interactive Game Views -->
+            <div id="minigame-play-view" class="minigame-subview">
+                <!-- Shared Header HUD -->
+                <div class="minigame-hud" style="display: flex; justify-content: space-between; font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; margin-bottom: 15px; border-bottom: 3px solid var(--border-dark); padding-bottom: 8px;">
+                    <div style="color: var(--pastel-red);">⏱️ TIME: <span id="minigame-timer">10</span>s</div>
+                    <div style="color: var(--pastel-yellow); text-shadow: 1px 1px 0 var(--border-dark);">⭐ SCORE: <span id="minigame-score">0</span></div>
+                </div>
+
+                <!-- Thai Tea Rush View -->
+                <div id="game-tea-view" class="game-specific-container">
+                    <!-- Glass Cup Container -->
+                    <div class="tea-cup-container" style="position: relative; width: 140px; height: 180px; border: 5px solid var(--border-dark); border-radius: 10px 10px 40px 40px; margin: 0 auto 15px auto; background-color: rgba(255, 255, 255, 0.4); overflow: hidden; box-shadow: inset 0 -15px 0 rgba(0,0,0,0.05);">
+                        <!-- Fluid Level -->
+                        <div id="tea-fluid" style="position: absolute; bottom: 0; left: 0; right: 0; height: 0%; background: linear-gradient(to top, #ea580c, #f97316); transition: height 0.1s ease; border-radius: 0 0 35px 35px;"></div>
+                        <!-- Tapioca Bubbles -->
+                        <div id="tea-bubbles-container" style="position: absolute; inset: 0; pointer-events: none;"></div>
+                    </div>
+                    <!-- Tap button -->
+                    <button id="btn-tap-tea" class="cute-action-btn btn-orange" style="font-size: 1.2rem; padding: 15px 35px; width: 100%; max-width: 250px; margin: 0 auto; box-shadow: 0 6px 0 var(--border-dark);">TAP / SPACEBAR! 🥤</button>
+                    <!-- Combo alert text -->
+                    <div id="tea-combo-alert" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.2rem; color: var(--pastel-pink); height: 24px; margin-top: 8px;"></div>
+                </div>
+
+                <!-- Tuk Tuk Drift View -->
+                <div id="game-tuktuk-view" class="game-specific-container">
+                    <canvas id="tuktuk-game-canvas" width="300" height="200" style="background-color: #cbd5e1; border: 4px solid var(--border-dark); border-radius: 15px; display: block; margin: 0 auto 12px auto; box-shadow: var(--toy-shadow-small);"></canvas>
+                    <!-- Mobile tap buttons -->
+                    <div class="tuktuk-controls" style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="btn-tuktuk-left" class="cute-action-btn btn-blue" style="padding: 10px 20px; font-size: 1.1rem; box-shadow: 0 4px 0 var(--border-dark);">◀ DRIFT LEFT</button>
+                        <button id="btn-tuktuk-right" class="cute-action-btn btn-blue" style="padding: 10px 20px; font-size: 1.1rem; box-shadow: 0 4px 0 var(--border-dark);">DRIFT RIGHT ▶</button>
+                    </div>
+                </div>
+
+                <!-- Wheel of Fortune View -->
+                <div id="game-wheel-view" class="game-specific-container cozy-arcade-view">
+                    <div id="fortune-wheel-disc" class="fortune-wheel-disc">
+                        <span>COINS</span>
+                        <span>GEMS</span>
+                        <span>LUCK</span>
+                        <span>STAR</span>
+                    </div>
+                    <div id="wheel-result-text" class="cozy-arcade-status">Line up the pointer and spin for prizes.</div>
+                    <button id="btn-wheel-spin" class="cute-action-btn btn-yellow cozy-arcade-primary asset-primary-btn">SPIN WHEEL</button>
+                </div>
+
+                <!-- Treasure Dig View -->
+                <div id="game-treasure-view" class="game-specific-container cozy-arcade-view">
+                    <div id="treasure-dig-grid" class="treasure-dig-grid">
+                        <button class="treasure-dig-tile" data-dig="0">?</button>
+                        <button class="treasure-dig-tile" data-dig="1">?</button>
+                        <button class="treasure-dig-tile" data-dig="2">?</button>
+                        <button class="treasure-dig-tile" data-dig="3">?</button>
+                        <button class="treasure-dig-tile" data-dig="4">?</button>
+                        <button class="treasure-dig-tile" data-dig="5">?</button>
+                        <button class="treasure-dig-tile" data-dig="6">?</button>
+                        <button class="treasure-dig-tile" data-dig="7">?</button>
+                        <button class="treasure-dig-tile" data-dig="8">?</button>
+                    </div>
+                    <div id="treasure-result-text" class="cozy-arcade-status">Tap sand tiles to uncover hidden travel treasure.</div>
+                </div>
+
+                <!-- Temple Cannon View -->
+                <div id="game-cannon-view" class="game-specific-container cozy-arcade-view">
+                    <div class="temple-cannon-stage">
+                        <div class="temple-cannon-target" id="temple-cannon-target">🏮</div>
+                        <div class="temple-cannon-base">🛕</div>
+                    </div>
+                    <div class="temple-cannon-meter">
+                        <div id="temple-cannon-meter-fill" class="temple-cannon-meter-fill"></div>
+                    </div>
+                    <div id="cannon-result-text" class="cozy-arcade-status">Fire when the lantern is centered.</div>
+                    <button id="btn-cannon-fire" class="cute-action-btn btn-orange cozy-arcade-primary">FIRE CANNON</button>
+                </div>
+
+                <!-- Floating Market Fishing View -->
+                <div id="game-fishing-view" class="game-specific-container cozy-arcade-view">
+                    <div class="floating-market-pond">
+                        <button class="fishing-ripple" data-fish="0">~</button>
+                        <button class="fishing-ripple" data-fish="1">~</button>
+                        <button class="fishing-ripple" data-fish="2">~</button>
+                    </div>
+                    <div id="fishing-result-text" class="cozy-arcade-status">Tap ripples to catch lucky market fish.</div>
+                </div>
+            </div>
+
+            <!-- Mini-Game Results View -->
+            <div id="minigame-results-view" class="minigame-subview">
+                <div class="modal-icon" style="font-size: 5rem; margin: 15px 0;">🎉</div>
+                <h3 style="font-family: var(--font-cute); font-weight: 800; font-size: 1.8rem; color: var(--text-dark); -webkit-text-stroke: 1px var(--border-dark); margin-bottom: 8px;">CHALLENGE COMPLETE!</h3>
+                <p id="minigame-result-text" style="font-family: var(--font-cute); font-weight: 700; color: var(--text-dark); font-size: 1.2rem; margin-bottom: 25px; line-height: 1.5;">You scored <span id="minigame-final-score" style="color: var(--pastel-yellow); -webkit-text-stroke: 1.5px var(--border-dark); font-size: 1.4rem;">45</span> points!<br>Earned <span id="minigame-reward-text" style="color: var(--pastel-green); -webkit-text-stroke: 1.5px var(--border-dark); font-size: 1.4rem;">💰 +450 Coins!</span></p>
+                <button id="btn-claim-minigame" class="cute-action-btn btn-green asset-confirm-btn">AWESOME! ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. WORLD MAP REGION SELECTION LAUNCHER -->
+    <div id="world-map-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 12000;">
+        <div class="world-map-container" style="position: relative;">
+            <!-- Close Button to go back to Lobby/Char-Select -->
+            <button id="btn-close-world-map" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Map Selection">&times;</button>
+            
+            <div class="world-map-header">
+                <div id="world-map-select-badge" class="select-badge">เที่ยวเมืองไทย!</div>
+                <h2 class="world-map-title">SELECT BOARD DESTINATION</h2>
+                <div id="world-map-xp-profile" class="world-xp-profile" style="margin-top: 5px; font-family: var(--font-cute); font-weight: 800; font-size: 0.95rem; color: var(--text-dark); display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                    <span>🏆 LEVEL: <strong id="map-total-level" style="color: var(--pastel-pink); -webkit-text-stroke: 0.5px var(--border-dark);">1</strong></span>
+                    <span>⭐ XP: <strong id="map-total-xp" style="color: var(--pastel-yellow); -webkit-text-stroke: 0.5px var(--border-dark);">0</strong></span>
+                    <span>💰 COINS: <strong id="map-progression-coins" style="color: var(--pastel-mint); -webkit-text-stroke: 0.5px var(--border-dark);">1,500</strong></span>
+                </div>
+            </div>
+            
+            <div class="map-carousel-wrapper" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0;">
+                <button id="btn-prev-map" class="carousel-arrow" title="Previous Map" style="background: var(--pastel-yellow); border: 3px solid var(--border-dark); border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; color: var(--text-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                
+                <div id="selected-map-card" class="map-card pulse-shake" style="position: relative; width: 280px; background: rgba(255, 255, 255, 0.9); border: 4px solid var(--border-dark); border-radius: 20px; box-shadow: var(--toy-shadow-large); overflow: hidden; padding: 0;">
+                    <!-- Lock Overlay -->
+                    <div id="map-locked-badge" class="map-locked-overlay" style="position: absolute; inset: 0; background: rgba(58, 50, 50, 0.8); display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff; z-index: 10; font-family: var(--font-cute); padding: 20px; text-align: center;">
+                        <div class="lock-icon" style="font-size: 3rem; text-shadow: 2px 2px 0 var(--border-dark); animation: lock-shake 1.5s infinite; margin-bottom: 5px;"><i class="fa-solid fa-lock"></i></div>
+                        <div class="lock-text" style="font-size: 1.4rem; font-weight: 800; text-shadow: 2px 2px 0 var(--border-dark); -webkit-text-stroke: 1px var(--border-dark); margin-bottom: 5px;">LOCKED</div>
+                        <div class="lock-req" id="map-lock-requirement" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; background: var(--pastel-red); border: 2.5px solid var(--border-dark); padding: 4px 10px; border-radius: 8px; box-shadow: 0 2px 0 var(--border-dark); color: white;">Level 2 Required</div>
+                        
+                        <!-- Early Coin Purchase Option -->
+                        <button id="btn-unlock-map-early" class="cute-party-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); font-size: 0.8rem; padding: 8px 12px; border-width: 2.5px; border-radius: 10px; box-shadow: 0 3px 0 var(--border-dark); width: 100%; max-width: 190px;">
+                            <span class="btn-bubble-content">UNLOCK EARLY! 💰</span>
+                        </button>
+                    </div>
+                    
+                    <div class="map-card-image-container" style="height: 120px; background: linear-gradient(135deg, var(--pastel-blue), var(--pastel-mint)); display: flex; align-items: center; justify-content: center; font-size: 4rem; border-bottom: 4px solid var(--border-dark);">
+                        <div id="map-preview-backdrop">🏝️</div>
+                    </div>
+                    <div class="map-card-body" style="padding: 12px; text-align: center;">
+                        <h3 class="map-card-name" id="map-name" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.4rem; color: var(--text-dark); margin: 0 0 6px 0;">Bangkok City</h3>
+                        <p class="map-card-desc" id="map-desc" style="font-family: var(--font-cute); font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0 0 10px 0; line-height: 1.3;">Night markets, tuk tuks, and neon cafes!</p>
+                        
+                        <div class="map-features-box" style="display: flex; flex-direction: column; gap: 5px; font-family: var(--font-cute); font-weight: 700; font-size: 0.75rem; color: var(--text-dark);">
+                            <div class="feature-tag" style="background: var(--bg-cream); border: 2px solid var(--border-dark); padding: 3px 6px; border-radius: 6px; text-align: left;"><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--pastel-pink);"></i> Props: <span id="map-feature-props" style="font-weight: 800;">BTS Guide Tracks & Tuk Tuks</span></div>
+                            <div class="feature-tag" style="background: var(--bg-cream); border: 2px solid var(--border-dark); padding: 3px 6px; border-radius: 6px; text-align: left;"><i class="fa-solid fa-music" style="color: var(--pastel-blue);"></i> Music: <span id="map-feature-music" style="font-weight: 800;">Urban Lo-Fi beats</span></div>
+                            <div class="feature-tag" style="background: var(--bg-cream); border: 2px solid var(--border-dark); padding: 3px 6px; border-radius: 6px; text-align: left;"><i class="fa-solid fa-star" style="color: var(--pastel-yellow);"></i> Difficulty: <span id="map-feature-difficulty" style="font-weight: 800; color: #b45309;">Easy ⭐</span></div>
+                            <div class="feature-tag" style="background: var(--bg-cream); border: 2px solid var(--border-dark); padding: 3px 6px; border-radius: 6px; text-align: left;"><i class="fa-solid fa-gift" style="color: var(--pastel-mint);"></i> Tour Rewards: <span id="map-feature-rewards" style="font-weight: 800; color: #16a34a;">1.0x XP & Coins</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="btn-next-map" class="carousel-arrow" title="Next Map" style="background: var(--pastel-yellow); border: 3px solid var(--border-dark); border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; color: var(--text-dark); box-shadow: 0 4px 0 var(--border-dark);">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <button id="btn-travel-now" class="cute-party-btn travel-btn" style="width: 100%; max-width: 250px; margin: 10px auto 0 auto;">
+                <span class="btn-bubble-content">CHOOSE DESTINATION! <i class="fa-solid fa-plane"></i></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 9. PROPERTY COLLECTION BOOK (STICKER ALBUM) MODAL -->
+    <div id="collection-book-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box collection-book-box scale-up-card">
+            <!-- Book Cover/Header -->
+            <div class="results-header" style="margin-bottom: 12px; position: relative;">
+                <button id="btn-close-collection" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Album">&times;</button>
+                <div class="select-badge" style="background-color: var(--pastel-pink); border-color: var(--border-dark); color: white; text-shadow: 1px 1px 0 var(--border-dark);" id="collection-badge-text">STICKER ALBUM 📖</div>
+                <h2 class="results-title" id="collection-title-text">PROPERTY COLLECTION</h2>
+                
+                <!-- Completion Stats -->
+                <div class="collection-stats-panel" style="margin-top: 10px; padding: 6px 12px; border: 2px solid var(--border-dark); border-radius: 12px; background: rgba(255,255,255,0.7); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: var(--text-dark);">
+                        <span id="collection-pct-label">COMPLETION:</span>
+                        <span id="collection-pct-value">0% (0/30)</span>
+                    </div>
+                    <div style="width: 100%; height: 10px; border: 2px solid var(--border-dark); border-radius: 5px; background: #fff; overflow: hidden; position: relative;">
+                        <div id="collection-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--pastel-pink), var(--pastel-mint)); transition: width 0.5s ease-out;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completion Reward Claiming Banner -->
+            <div id="collection-reward-banner" style="display: none;">
+                <div class="reward-info-text">
+                    <span class="reward-city-title" id="reward-city-name">Bangkok Collection Completed!</span>
+                    <span class="reward-amount-label" id="reward-payout-text">Reward: 💰1,000 + 💎20</span>
+                </div>
+                <button id="btn-claim-collection-reward" class="cute-mini-btn active" style="margin: 0; padding: 6px 12px; font-size: 0.8rem;">CLAIM REWARD! 🎁</button>
+            </div>
+
+            <!-- Sticker Album Pages ring binder container -->
+            <div class="sticker-binder-container">
+                <!-- Page Selector Tabs -->
+                <div class="sticker-tab-group">
+                    <button class="sticker-tab active" id="tab-page-1" data-page="1">
+                        <span class="tab-emoji">🛕</span> <span class="tab-label" id="lbl-tab-page-1">BANGKOK</span>
+                    </button>
+                    <button class="sticker-tab" id="tab-page-2" data-page="2">
+                        <span class="tab-emoji">🏮</span> <span class="tab-label" id="lbl-tab-page-2">CHIANG MAI</span>
+                    </button>
+                    <button class="sticker-tab" id="tab-page-3" data-page="3">
+                        <span class="tab-emoji">🏖️</span> <span class="tab-label" id="lbl-tab-page-3">PHUKET</span>
+                    </button>
+                    <button class="sticker-tab" id="tab-page-4" data-page="4">
+                        <span class="tab-emoji">⛵</span> <span class="tab-label" id="lbl-tab-page-4">AYUTTHAYA</span>
+                    </button>
+                    <button class="sticker-tab" id="tab-page-5" data-page="5">
+                        <span class="tab-emoji">🎲</span> <span class="tab-label" id="lbl-tab-page-5">DICE SKINS</span>
+                    </button>
+                </div>
+
+                <!-- Page Page Sheet Paper -->
+                <div class="sticker-paper-page">
+                    <!-- Ring binder holes details -->
+                    <div class="sticker-spine-rings">
+                        <div class="spine-ring"></div>
+                        <div class="spine-ring"></div>
+                        <div class="spine-ring"></div>
+                        <div class="spine-ring"></div>
+                        <div class="spine-ring"></div>
+                    </div>
+                    
+                    <!-- Sticker slots list populated dynamically via JS -->
+                    <div id="sticker-slots-list" class="sticker-slots-grid">
+                        <!-- Populated by main.js -->
+                    </div>
+
+                    <!-- Missing Stickers Summary Section -->
+                    <div id="missing-stickers-summary" style="display: none;">
+                        <div class="missing-summary-title">
+                            🔍 <span id="lbl-missing-title">Missing Travel Stickers</span>
+                        </div>
+                        <div class="missing-stickers-list" id="missing-stickers-list">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer navigation arrows -->
+            <div class="sticker-footer-nav" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <button id="btn-collection-prev" class="carousel-arrow" style="background: var(--pastel-yellow); width: 44px; height: 44px; font-size: 1.1rem; border: 3px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); cursor: pointer;">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span id="collection-page-indicator" style="font-family: var(--font-cute); font-weight: 800; font-size: 0.95rem; color: var(--text-dark);">PAGE 1 / 5</span>
+                <button id="btn-collection-next" class="carousel-arrow" style="background: var(--pastel-yellow); width: 44px; height: 44px; font-size: 1.1rem; border: 3px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); cursor: pointer;">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 9.5 DAILY MISSIONS PANEL (NOTEPAD STYLE) MODAL -->
+    <div id="missions-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box missions-box scale-up-card" style="position: relative; max-width: 480px !important;">
+            <button id="btn-close-missions" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Missions">&times;</button>
+            
+            <div class="results-header" style="margin-bottom: 12px; text-align: center;">
+                <div class="select-badge" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark); text-shadow: 1px 1px 0 white;" id="missions-badge-text">DAILY CHALLENGES 📅</div>
+                <h2 class="results-title" id="missions-title-text" style="font-size: 1.6rem;">DAILY MISSIONS</h2>
+            </div>
+            
+            <!-- Grand Prize Progress Chest Bar -->
+            <div class="grand-chest-panel" style="padding: 10px 14px; border: 3.5px solid var(--border-dark); border-radius: 20px; background: #fffcf2; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: var(--toy-shadow-small);">
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
+                    <span style="font-family: var(--font-cute); font-size: 0.82rem; font-weight: 800; color: var(--text-dark);" id="lbl-grand-chest-title">DAILY GRAND PRIZE</span>
+                    <span style="font-family: var(--font-cute); font-size: 0.68rem; font-weight: 700; color: var(--text-muted);" id="lbl-grand-chest-desc">Complete all 3 missions to unlock!</span>
+                    <div style="width: 100%; height: 12px; border: 2.5px solid var(--border-dark); border-radius: 6px; background: #fff; overflow: hidden; position: relative; margin-top: 4px;">
+                        <div id="missions-grand-progress" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--pastel-yellow), var(--pastel-mint)); transition: width 0.4s ease-out;"></div>
+                    </div>
+                </div>
+                
+                <!-- Shaking unlocked chest container -->
+                <div class="chest-reward-container" style="position: relative; width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; cursor: pointer;" id="grand-chest-btn">
+                    <div class="chest-halo" id="grand-chest-halo" style="position: absolute; width: 85px; height: 85px; border-radius: 50%; background: radial-gradient(circle, rgba(253,224,71,0.4) 0%, transparent 70%); display: none; animation: rotate-halo 10s linear infinite;"></div>
+                    <div class="chest-icon" id="grand-chest-icon" style="font-size: 3.2rem; filter: drop-shadow(0 3px 0 var(--border-dark)); transition: transform 0.15s;">🔒🎁</div>
+                </div>
+            </div>
+            
+            <!-- List of 3 Active Daily Missions -->
+            <div class="missions-notepad-sheet" style="background-color: #fffdf5; background-image: radial-gradient(rgba(58,50,50,0.03) 15%, transparent 16%); background-size: 16px 16px; border: 4.5px solid var(--border-dark); border-radius: 24px; padding: 16px 14px; box-shadow: inset 0 0 15px rgba(0,0,0,0.05), var(--toy-shadow-small); min-height: 280px; display: flex; flex-direction: column; gap: 12px;" id="active-missions-list">
+                <!-- Populated dynamically via main.js -->
+            </div>
+            
+            <div style="font-family: var(--font-cute); font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-align: center; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.5px;" id="missions-reset-text">Missions reset automatically every rollover</div>
+        </div>
+    </div>
+
+    <!-- 9.7 PASSPORT STAMPS ACHIEVEMENT SYSTEM MODAL -->
+    <div id="achievements-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box achievements-box scale-up-card" style="position: relative; max-width: 580px !important; width: 95%;">
+            <button id="btn-close-achievements" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Achievements">&times;</button>
+            
+            <div class="results-header" style="margin-bottom: 12px; text-align: center; position: relative;">
+                <div class="select-badge" style="background-color: var(--pastel-mint); border-color: var(--border-dark); color: var(--text-dark); text-shadow: 1px 1px 0 white;" id="achievements-badge-text">PASSPORT BADGES 🏆</div>
+                <h2 class="results-title" id="achievements-title-text" style="font-size: 1.6rem; margin-bottom: 6px;">HONOR PASSPORT</h2>
+                
+                <!-- Overall Scrapbook Progression -->
+                <div class="achievements-stats-panel" style="margin-top: 8px; padding: 6px 12px; border: 2.5px solid var(--border-dark); border-radius: 12px; background: rgba(255,255,255,0.7); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: var(--text-dark); font-family: var(--font-cute);">
+                        <span id="achievements-pct-label">COMPLETION:</span>
+                        <span id="achievements-pct-value">0% (0/100)</span>
+                    </div>
+                    <div style="width: 100%; height: 10px; border: 2px solid var(--border-dark); border-radius: 5px; background: #fff; overflow: hidden; position: relative;">
+                        <div id="achievements-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--pastel-mint), var(--pastel-yellow)); transition: width 0.4s ease-out;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Tabs Selector and Search Field -->
+            <div class="achievements-search-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <div class="search-input-wrapper" style="position: relative; flex: 1;">
+                    <input type="text" id="achievements-search-input" placeholder="Search achievements... / ค้นหาถ้วยรางวัล..." style="width: 100%; padding: 8px 12px 8px 32px; border: 3px solid var(--border-dark); border-radius: 12px; font-family: var(--font-cute); font-size: 0.82rem; font-weight: 700; outline: none; background: #fffdf5; box-shadow: var(--toy-shadow-small);" />
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                </div>
+            </div>
+            
+            <!-- Scrapbook Pages Ring Binder Container -->
+            <div class="achievements-binder-container" style="position: relative;">
+                <!-- Tab Categories selectors -->
+                <div class="achievements-tab-group" style="display: flex; gap: 4px; position: absolute; top: -34px; left: 12px; z-index: 1;">
+                    <button class="achievement-tab active" data-category="traveler" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.62rem; padding: 5px 8px; border: 2.5px solid var(--border-dark); border-bottom: none; border-radius: 10px 10px 0 0; cursor: pointer; background-color: #e2e8f0; display: flex; align-items: center; gap: 3px; transform: translateY(2px); transition: all 0.2s;">
+                        <span>✈️</span> <span class="tab-txt">TRAVEL</span>
+                    </button>
+                    <button class="achievement-tab" data-category="tycoon" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.62rem; padding: 5px 8px; border: 2.5px solid var(--border-dark); border-bottom: none; border-radius: 10px 10px 0 0; cursor: pointer; background-color: #e2e8f0; display: flex; align-items: center; gap: 3px; transform: translateY(2px); transition: all 0.2s;">
+                        <span>🏡</span> <span class="tab-txt">TYCOON</span>
+                    </button>
+                    <button class="achievement-tab" data-category="finance" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.62rem; padding: 5px 8px; border: 2.5px solid var(--border-dark); border-bottom: none; border-radius: 10px 10px 0 0; cursor: pointer; background-color: #e2e8f0; display: flex; align-items: center; gap: 3px; transform: translateY(2px); transition: all 0.2s;">
+                        <span>💰</span> <span class="tab-txt">FINANCE</span>
+                    </button>
+                    <button class="achievement-tab" data-category="fortune" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.62rem; padding: 5px 8px; border: 2.5px solid var(--border-dark); border-bottom: none; border-radius: 10px 10px 0 0; cursor: pointer; background-color: #e2e8f0; display: flex; align-items: center; gap: 3px; transform: translateY(2px); transition: all 0.2s;">
+                        <span>🍀</span> <span class="tab-txt">FORTUNE</span>
+                    </button>
+                    <button class="achievement-tab" data-category="party" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.62rem; padding: 5px 8px; border: 2.5px solid var(--border-dark); border-bottom: none; border-radius: 10px 10px 0 0; cursor: pointer; background-color: #e2e8f0; display: flex; align-items: center; gap: 3px; transform: translateY(2px); transition: all 0.2s;">
+                        <span>🎮</span> <span class="tab-txt">PARTY</span>
+                    </button>
+                </div>
+                
+                <!-- Inner Paper Sheet page for stamps -->
+                <div class="achievements-paper-page" style="background-color: #f7f9fa; background-image: radial-gradient(rgba(58,50,50,0.02) 15%, transparent 16%); background-size: 14px 14px; border: 4px solid var(--border-dark); border-radius: 20px; padding: 15px 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.04), var(--toy-shadow-small); min-height: 320px; max-height: 380px; overflow-y: auto; z-index: 0; display: flex; flex-direction: column; gap: 10px;" id="achievements-grid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+            
+            <div style="font-family: var(--font-cute); font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-align: center; margin-top: 8px; text-transform: uppercase;" id="achievements-footer-text">Stamps unlocked permanently across all passport trips</div>
+        </div>
+    </div>
+
+    <!-- 9.8 CHARACTER GALLERY & GACHAPON SUMMON MODAL -->
+    <div id="gallery-modal" class="modal-overlay ui-overlay">
+        <div class="cute-modal-box gallery-box scale-up-card" style="position: relative; max-width: 600px !important; width: 95%;">
+            <button id="btn-close-gallery" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Gallery">&times;</button>
+            
+            <div class="results-header" style="margin-bottom: 12px; text-align: center; position: relative;">
+                <div class="select-badge" style="background-color: var(--pastel-purple); border-color: var(--border-dark); color: white;" id="gallery-badge-text">TOY GACHAPON 🐹</div>
+                <h2 class="results-title" id="gallery-title-text" style="font-size: 1.6rem; margin-bottom: 4px;">HEROES GALLERY</h2>
+                
+                <!-- Collection Stats panel -->
+                <div style="margin-top: 6px; padding: 6px 12px; border: 2.5px solid var(--border-dark); border-radius: 12px; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: space-between; font-family: var(--font-cute); font-weight: 800; font-size: 0.82rem; color: var(--text-dark);">
+                    <span>Unlocked / ปลดล็อกแล้ว: <span id="gallery-unlocked-ratio" style="color: #a855f7;">4/12</span></span>
+                    <span>Coins / เหรียญ: <span id="gallery-coins-val" style="color: #fbbf24;">💰 1,500</span></span>
+                </div>
+            </div>
+            
+            <!-- Capsule Summon machine & Reveal panel -->
+            <div class="gacha-summon-row" style="display: flex; gap: 15px; margin-bottom: 15px; background: #fffdf5; border: 3px solid var(--border-dark); border-radius: 16px; padding: 12px; box-shadow: var(--toy-shadow-small); position: relative; overflow: hidden; align-items: center;">
+                <div class="gacha-machine-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; width: 140px; text-align: center;">
+                    <!-- Cute mechanical machine icon with lever -->
+                    <div id="gacha-machine-box" style="font-size: 4rem; filter: drop-shadow(0 4px 0 var(--border-dark)); transition: transform 0.2s ease; cursor: pointer; display: inline-block; user-select: none;" title="Spin Gacha!">🎰</div>
+                    <button id="btn-gacha-spin" class="cute-mini-btn asset-primary-btn" style="background-color: #fbbf24; border-color: var(--border-dark); color: var(--text-dark); font-weight: 800; padding: 4px 8px; font-size: 0.68rem; box-shadow: 0 3px 0 var(--border-dark); cursor: pointer; margin-top: 8px; white-space: nowrap; width: 100%;">
+                        SPIN (💰600)
+                    </button>
+                </div>
+                
+                <div class="gacha-status-panel" style="flex: 1; font-family: var(--font-cute); display: flex; flex-direction: column; gap: 4px; justify-content: center;">
+                    <div id="gacha-status-header" style="font-weight: 800; font-size: 0.85rem; color: #a855f7; text-transform: uppercase;">Toy Capsule Machine / ตู้ไขกาชาปองของเล่น</div>
+                    <div id="gacha-status-desc" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; line-height: 1.35;">
+                        Unlock rare, epic, or legendary heroes! Duplicates refund 💰200. Spin the mechanical handle to summon capsules! / สะสมฮีโร่สุดน่ารัก! หากสุ่มได้ตัวซ้ำจะได้รับเงินคืน 💰200 เหรียญ หมุนคันโยกเพื่อสุ่มกาชาปองกันเลย!
+                    </div>
+                </div>
+                
+                <!-- Gacha Reveal animation pane overlay -->
+                <div id="gacha-reveal-pane" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #fdf6e2 20%, #faf1da 100%); z-index: 100; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-cute); font-weight: 800; text-align: center; border-radius: 12px; padding: 10px;">
+                    <div id="gacha-capsule-anim" style="font-size: 4.5rem; transition: transform 0.5s; display: inline-block;">💊</div>
+                    <div id="gacha-reveal-title" style="font-size: 0.75rem; color: #a855f7; margin-top: 6px; letter-spacing: 0.5px;">SUMMONING CHIBI FIGURE...</div>
+                    <div id="gacha-reveal-name" style="font-size: 1.35rem; color: var(--text-dark); display: none; line-height: 1.2; font-weight: 900; margin-top: 2px;">Nong Mango 🥭</div>
+                    <div id="gacha-reveal-rarity" class="rarity-pill rare" style="display: none; margin-top: 4px; font-size: 0.58rem; padding: 2px 8px;">RARE</div>
+                    <button id="btn-gacha-reveal-ok" class="cute-mini-btn asset-confirm-btn" style="display: none; margin-top: 10px; background-color: var(--pastel-mint); border-color: var(--border-dark); color: var(--text-dark); font-weight: 800; padding: 4px 16px; box-shadow: 0 3px 0 var(--border-dark); cursor: pointer;">
+                        AWESOME! / ยอดเยี่ยม!
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Binder Paper scrap page grid -->
+            <div class="achievements-binder-container" style="position: relative;">
+                <div class="achievements-paper-page" style="background-color: #fcfcfc; background-image: radial-gradient(rgba(168,85,247,0.015) 15%, transparent 16%); background-size: 14px 14px; border: 4px solid var(--border-dark); border-radius: 20px; padding: 15px 10px; box-shadow: inset 0 0 15px rgba(0,0,0,0.03), var(--toy-shadow-small); min-height: 240px; max-height: 280px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;" id="gallery-grid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+            
+            <!-- Details drawer slot (hidden by default) -->
+            <div class="sticker-details-drawer" id="hero-details-drawer" style="display: none; margin-top: 10px; border: 3px solid var(--border-dark); border-radius: 16px; padding: 12px; background: #fffdf5; box-shadow: var(--toy-shadow-small); position: relative; font-family: var(--font-cute);">
+                <!-- Injected dynamically -->
+            </div>
+            
+            <div style="font-family: var(--font-cute); font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-align: center; margin-top: 6px; text-transform: uppercase;" id="gallery-footer-text">Summon capsules or select unlocked heroes permanently across all matches</div>
+        </div>
+    </div>
+
+    <!-- 9. TRAVEL FLIGHT TRANSITION OVERLAY -->
+    <div id="travel-transition-overlay" class="ui-overlay" style="display: none; opacity: 0; background: var(--pastel-mint); z-index: 10000; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; transition: opacity 0.5s ease;">
+        <div class="flight-container" style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="flight-clouds-left" style="position: absolute; left: -100px; font-size: 12rem; color: #fff; opacity: 0.85; transition: left 1.5s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none;"><i class="fa-solid fa-cloud"></i></div>
+            <div class="flight-clouds-right" style="position: absolute; right: -100px; font-size: 12rem; color: #fff; opacity: 0.85; transition: right 1.5s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none;"><i class="fa-solid fa-cloud"></i></div>
+            
+            <div class="flight-plane-container" style="text-align: center; z-index: 20; position: relative;">
+                <div class="flight-plane" style="font-size: 6.5rem; text-shadow: 4px 4px 0 var(--border-dark); animation: plane-fly 1.2s infinite ease-in-out; display: inline-block;">🛩️</div>
+                <div class="flight-trail" style="font-size: 2rem; margin-top: 10px; opacity: 0.75; font-family: var(--font-cute); font-weight: 800; color: #fff; text-shadow: 2px 2px 0 var(--border-dark);">CLIMBING ALTITUDE...</div>
+            </div>
+            <div class="flight-status-text" id="flight-status-text" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.6rem; color: var(--text-dark); margin-top: 25px; background: rgba(255,255,255,0.85); border: 4px solid var(--border-dark); padding: 12px 28px; border-radius: 20px; box-shadow: var(--toy-shadow-large); z-index: 25; text-align: center;">Flying to Phuket Island...</div>
+        </div>
+    </div>
+
+    <!-- 10. SAVE GAME NOTIFICATION POPUP -->
+    <div id="save-game-modal" class="modal-overlay ui-overlay" style="display: none; z-index: 20000; align-items: center; justify-content: center;">
+        <div class="cute-modal-box scale-up-card" style="max-width: 320px; background: #fffdf5; border: 4px solid var(--border-dark); border-radius: 24px; padding: 20px; box-shadow: var(--toy-shadow-large); text-align: center; font-family: var(--font-cute);">
+            <div class="select-badge" style="background-color: var(--pastel-mint); border-color: var(--border-dark); color: var(--text-dark); font-weight: 800; font-size: 0.75rem; text-shadow: none; padding: 4px 14px; display: inline-block;" id="save-modal-badge">ADVENTURE LOGGED! 📖</div>
+            <h2 style="font-size: 1.8rem; font-weight: 900; color: var(--text-dark); margin: 12px 0 6px 0;" id="save-modal-title">Game Saved! 💾</h2>
+            <div style="font-size: 4rem; margin: 10px 0; filter: drop-shadow(0 4px 0 var(--border-dark));" id="save-modal-emoji">🎒</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700; line-height: 1.4; margin-bottom: 15px;" id="save-modal-desc">
+                Your Thailand adventure progress has been permanently saved! You can resume from this turn anytime. / บันทึกความคืบหน้าการเดินทางเรียบร้อยแล้ว! สามารถกลับมาเล่นต่อจากรอบนี้ได้ทุกเมื่อครับ
+            </p>
+            <button id="btn-save-confirm" class="cute-party-btn asset-confirm-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 100%; border-width: 3px; box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content" id="save-modal-btn">CONTINUE ADVENTURE 👍</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 11. PLAYER TRAVEL PASSPORT MODAL -->
+    <div id="profile-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 15000;">
+        <div class="cute-modal-box profile-passport-box scale-up-card" style="max-width: 580px !important; width: 95%; background: #78350f; border: 5px solid var(--border-dark); border-radius: 28px; padding: 12px; box-shadow: var(--toy-shadow-large); position: relative;">
+            <button id="btn-close-profile" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; z-index: 100;" title="Close Passport">&times;</button>
+            
+            <!-- Passport Inner Binder Page -->
+            <div class="passport-inner" style="background: #fef8eb; border: 3px solid var(--border-dark); border-radius: 20px; padding: 20px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 20px; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.08);">
+                
+                <!-- Watermark elements to make it feel premium -->
+                <div style="position: absolute; bottom: -10px; right: -10px; font-size: 8rem; opacity: 0.04; pointer-events: none; transform: rotate(-25deg);"><i class="fa-solid fa-passport"></i></div>
+                
+                <!-- LEFT PAGE: Personal Bio -->
+                <div class="passport-left" style="border-right: 2px dashed rgba(58,50,50,0.18); padding-right: 15px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;">
+                    <!-- Title -->
+                    <div style="font-family: var(--font-cute); font-weight: 800; font-size: 0.65rem; color: #b45309; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; border: 1.5px solid #b45309; padding: 2px 8px; border-radius: 6px;">KINGDOM OF THAILAND 🇹🇭</div>
+                    
+                    <!-- Cute Photo Booth slot -->
+                    <div class="passport-photo-booth" style="width: 110px; height: 130px; border: 3.5px solid var(--border-dark); border-radius: 16px; background: #fffdf5; box-shadow: var(--toy-shadow-small); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-bottom: 10px;">
+                        <!-- Red ribbon photo stamp -->
+                        <div style="position: absolute; top: 0; left: 0; background: var(--pastel-red); color: white; font-size: 0.45rem; font-weight: 800; padding: 2px 10px; transform: rotate(-45deg) translate(-15px, -3px); width: 60px; text-align: center;">OFFICIAL</div>
+                        <div id="profile-char-emoji" style="font-size: 3.8rem; filter: drop-shadow(0 3px 0 var(--border-dark));">🐱</div>
+                        <div id="profile-char-rarity" style="font-family: var(--font-cute); font-size: 0.55rem; font-weight: 800; color: white; background: #a855f7; border: 1.5px solid var(--border-dark); padding: 1px 6px; border-radius: 6px; position: absolute; bottom: 8px;">EPIC</div>
+                    </div>
+                    
+                    <!-- Bio Details list -->
+                    <div style="width: 100%; text-align: left; font-family: var(--font-cute); font-weight: 700; font-size: 0.72rem; color: var(--text-dark); display: flex; flex-direction: column; gap: 5px;">
+                        <div><span style="color: var(--text-muted); font-size: 0.62rem;">SURNAME / ชื่อตัวละคร</span><br><strong id="profile-char-name" style="font-size: 0.85rem; font-weight: 800;">TOURY CAT</strong></div>
+                        <div style="display: flex; gap: 10px; margin-top: 2px;">
+                            <div style="flex: 1;"><span style="color: var(--text-muted); font-size: 0.62rem;">LEVEL / ระดับ</span><br><strong id="profile-level" style="color: #b45309; font-size: 0.8rem;">LV. 3 TOURIST</strong></div>
+                            <div style="flex: 1;"><span style="color: var(--text-muted); font-size: 0.62rem;">PASSPORT ID</span><br><strong style="font-size: 0.75rem;">TH-TOY-777</strong></div>
+                        </div>
+                        <div style="margin-top: 2px;"><span style="color: var(--text-muted); font-size: 0.62rem;">NATIONALITY / สัญชาติ</span><br><strong style="font-size: 0.72rem;">TOY RESIDENT 🧸</strong></div>
+                    </div>
+                </div>
+                
+                <!-- RIGHT PAGE: Trip statistics & Stamps -->
+                <div class="passport-right" style="display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                    <!-- Passport Stamps header -->
+                    <div style="text-align: center; margin-bottom: 8px; position: relative;">
+                        <h4 id="lbl-profile-record" style="font-family: var(--font-cute); font-weight: 800; font-size: 0.95rem; color: var(--text-dark); margin: 0;">ADVENTURE RECORD 📝</h4>
+                        <div style="width: 40px; height: 3px; background: #b45309; margin: 4px auto 0 auto; border-radius: 2px;"></div>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div style="display: flex; flex-direction: column; gap: 7px; font-family: var(--font-cute); font-weight: 700; font-size: 0.75rem; color: var(--text-dark);">
+                        <!-- Coins line -->
+                        <div style="background: rgba(255,255,255,0.65); border: 2px solid var(--border-dark); padding: 5px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span id="lbl-profile-stat-coins">🪙 TOTAL COINS EARNED:</span>
+                            <span id="profile-stat-coins" style="font-weight: 800; color: #b45309;">0 Coins</span>
+                        </div>
+                        
+                        <!-- Properties line -->
+                        <div style="background: rgba(255,255,255,0.65); border: 2px solid var(--border-dark); padding: 5px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span id="lbl-profile-stat-properties">📖 PROPERTIES DISCOVERED:</span>
+                            <span id="profile-stat-properties" style="font-weight: 800; color: var(--pastel-pink); -webkit-text-stroke: 0.3px var(--border-dark);">0 / 30</span>
+                        </div>
+                        
+                        <!-- Games line -->
+                        <div style="background: rgba(255,255,255,0.65); border: 2px solid var(--border-dark); padding: 5px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span id="lbl-profile-stat-games">🎲 GAMES PLAYED:</span>
+                            <span id="profile-stat-games" style="font-weight: 800; color: #0284c7;">0 Matches</span>
+                        </div>
+                        
+                        <!-- Wins line -->
+                        <div style="background: rgba(255,255,255,0.65); border: 2px solid var(--border-dark); padding: 5px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span id="lbl-profile-stat-wins">🏆 ADVENTURES WON:</span>
+                            <span id="profile-stat-wins" style="font-weight: 800; color: #16a34a;">0 Wins</span>
+                        </div>
+                        
+                        <!-- Badges line -->
+                        <div style="background: rgba(255,255,255,0.65); border: 2px solid var(--border-dark); padding: 5px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span id="lbl-profile-stat-badges">🏵️ STAMPS COLLECTED:</span>
+                            <span id="profile-stat-badges" style="font-weight: 800; color: #a855f7;">0 Stamps</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Cute Thailand Stamps stamps box -->
+                    <div id="passport-relic-stamps" class="passport-stickers" style="display: flex; gap: 6px; justify-content: center; margin-top: 10px; position: relative;">
+                        <div id="stamp-relic-tuktuk" style="width: 38px; height: 38px; border: 2.5px dashed #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: rgba(239,68,68,0.06); transform: rotate(-10deg); cursor: pointer; transition: all 0.2s;" title="Tuk Tuk Toy (Bangkok)">🛺</div>
+                    
+                    <!-- Unlocked Badges Showcase -->
+                    <div style="margin-top: 10px; border-top: 2px dashed rgba(58,50,50,0.12); padding-top: 8px;">
+                        <div style="font-family: var(--font-cute); font-weight: 800; font-size: 0.65rem; color: #b45309; text-transform: uppercase; text-align: center; margin-bottom: 5px;">PASSPORT BADGES / ตราประทับเกียรติยศ</div>
+                        <div id="profile-unlocked-badges" style="display: flex; gap: 8px; justify-content: center; min-height: 25px; flex-wrap: wrap;">
+                            <!-- Badge icons like 🎒, 🛕, 🛺, 👑 will go here! -->
+                        </div>
+                    </div>
+                        <div id="stamp-relic-lantern" style="width: 38px; height: 38px; border: 2.5px dashed #a855f7; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: rgba(168,85,247,0.06); transform: rotate(15deg); cursor: pointer; transition: all 0.2s;" title="Yi Peng Lantern (Chiang Mai)">🏮</div>
+                        <div id="stamp-relic-buddha" style="width: 38px; height: 38px; border: 2.5px dashed #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: rgba(245,158,11,0.06); transform: rotate(-5deg); cursor: pointer; transition: all 0.2s;" title="Buddha Stone Head (Ayutthaya)">🗿</div>
+                        <div id="stamp-relic-sailboat" style="width: 38px; height: 38px; border: 2.5px dashed #3b82f6; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: rgba(59,130,246,0.06); transform: rotate(8deg); cursor: pointer; transition: all 0.2s;" title="Sailboat Figurine (Pattaya)">⛵</div>
+                        <div id="stamp-relic-coconut" style="width: 38px; height: 38px; border: 2.5px dashed #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: rgba(16,185,129,0.06); transform: rotate(-12deg); cursor: pointer; transition: all 0.2s;" title="Golden Coconut (Phuket)">🥥</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- 12. DYNAMIC FESTIVAL ANNOUNCEMENT MODAL -->
+    <div id="festival-announcement-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 21000;">
+        <div class="cute-modal-box scale-up-card" style="max-width: 340px; background: #fffdf5; border: 4.5px solid var(--border-dark); border-radius: 28px; padding: 22px; box-shadow: var(--toy-shadow-large); text-align: center; font-family: var(--font-cute); position: relative; overflow: hidden;">
+            
+            <!-- Confetti ribbons decorations -->
+            <div style="position: absolute; top: -10px; left: -10px; font-size: 2.5rem; opacity: 0.15;">🎉</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 2.5rem; opacity: 0.15;">🎉</div>
+
+            <div class="select-badge" style="background-color: var(--pastel-pink); border-color: var(--border-dark); color: white; font-weight: 800; font-size: 0.72rem; text-shadow: 1px 1px 0 var(--border-dark); padding: 4px 14px; display: inline-block; text-transform: uppercase;" id="fest-announce-badge">FESTIVAL INCOMING! 🎪</div>
+            <h2 style="font-size: 1.7rem; font-weight: 900; color: var(--text-dark); margin: 12px 0 6px 0;" id="fest-announce-title">Songkran Splash! 💦</h2>
+            <div style="font-size: 4.2rem; margin: 12px 0; filter: drop-shadow(0 4px 0 var(--border-dark));" id="fest-announce-emoji">💦</div>
+            
+            <!-- Dynamic Bonus details -->
+            <div style="background: rgba(255, 255, 255, 0.75); border: 2.5px solid var(--border-dark); border-radius: 14px; padding: 8px 12px; margin-bottom: 15px; text-align: left;">
+                <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">Active Festival Bonus / บัฟเทศกาลพิเศษ:</div>
+                <div id="fest-announce-bonus" style="font-size: 0.8rem; font-weight: 800; color: #16a34a;">⚡ MOVE SPEED INCREASED +20%!</div>
+            </div>
+
+            <p style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; line-height: 1.4; margin-bottom: 18px;" id="fest-announce-desc">
+                Water fights have begun! Slashing cool water on all blocks. Let's tour! / เทศกาลสาดน้ำสงกรานต์เริ่มแล้ว! สาดน้ำเย็นชื่นใจคลายร้อนกันเถอะครับ
+            </p>
+            <button id="btn-fest-announce-close" class="cute-party-btn" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); width: 100%; border-width: 3px; box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">LET'S CELEBRATE! 🥳</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 13. PHOTO MODE OVERLAY & DECK -->
+    <div id="photo-mode-overlay" style="display: none; position: fixed; inset: 0; pointer-events: none; z-index: 99999; font-family: var(--font-cute);">
+        <!-- Top bar: Mode Title -->
+        <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); pointer-events: auto; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 24px; box-shadow: var(--toy-shadow-small); display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.05rem; color: var(--text-dark); animation: travel-slide-down 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <span>📸</span>
+            <span id="photo-mode-title-text">TRAVEL PHOTO MODE</span>
+        </div>
+
+        <!-- Camera Flash Panel -->
+        <div id="camera-flash" style="position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 100000; transition: opacity 0.15s ease-out;"></div>
+
+        <!-- Center: Postcard Guide Frame (Soft Guide Outline) -->
+        <div id="postcard-guide-frame" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 75vmin; height: 50vmin; border: 3.5px dashed rgba(255,255,255,0.65); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.3); pointer-events: none; display: flex; align-items: flex-end; padding: 15px; box-sizing: border-box;">
+            <div id="postcard-guide-stamp" style="position: absolute; top: 15px; right: 15px; width: 60px; height: 75px; border: 2px dashed rgba(255,255,255,0.7); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; opacity: 0.85;">🐘</div>
+            <div id="postcard-guide-text" style="color: white; font-size: 0.85rem; font-weight: 800; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); opacity: 0.85; text-transform: uppercase;">Greetings from Thailand! 🏖️</div>
+        </div>
+
+        <!-- Bottom bar: Tactile Control Deck -->
+        <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); pointer-events: auto; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 3.5px solid var(--border-dark); border-radius: 28px; padding: 15px 25px; box-shadow: var(--toy-shadow-large); display: flex; flex-direction: column; gap: 10px; align-items: center; width: 90%; max-width: 580px; box-sizing: border-box; animation: travel-slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            
+            <!-- Category row: Frame Selection & Slider -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; border-bottom: 2px solid rgba(0,0,0,0.06); padding-bottom: 10px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">FRAME STYLE / สไตล์การ์ด:</span>
+                    <select id="select-frame-style" style="padding: 6px 12px; border: 2.5px solid var(--border-dark); border-radius: 10px; font-family: var(--font-cute); font-weight: 800; font-size: 0.8rem; background: white; cursor: pointer; outline: none;">
+                        <option value="classic">CLASSIC VINTAGE 🐘</option>
+                        <option value="beach">TROPICAL BEACH 🏖️</option>
+                        <option value="sunset">GOLDEN WAT ARUN 🛕</option>
+                        <option value="clean">CLEAN POLAROID 📸</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">CAMERA ZOOM / ซูม:</span>
+                    <input type="range" id="photo-zoom-slider" min="10" max="32" value="18" style="width: 100px; accent-color: var(--pastel-mint); cursor: pointer;" />
+                </div>
+            </div>
+            
+            <!-- Controls action row -->
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center; width: 100%;">
+                <!-- Rotate left -->
+                <button id="btn-photo-rot-left" class="circle-bubble-btn" style="background: var(--pastel-blue); font-size: 1rem; width: 44px; height: 44px;" title="Rotate Left / หมุนซ้าย">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                
+                <!-- Zoom Out -->
+                <button id="btn-photo-zoom-out" class="circle-bubble-btn" style="background: #e2e8f0; font-size: 1rem; width: 44px; height: 44px;" title="Zoom Out / ซูมออก">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+
+                <!-- SNAP BUTTON -->
+                <button id="btn-photo-snap" class="cute-party-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 1rem; box-shadow: 0 4px 0 var(--border-dark);">
+                    <span class="btn-bubble-content" id="lbl-photo-snap">📸 CAPTURE POSTCARD!</span>
+                </button>
+
+                <!-- Zoom In -->
+                <button id="btn-photo-zoom-in" class="circle-bubble-btn" style="background: #e2e8f0; font-size: 1rem; width: 44px; height: 44px;" title="Zoom In / ซูมเข้า">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+
+                <!-- Rotate right -->
+                <button id="btn-photo-rot-right" class="circle-bubble-btn" style="background: var(--pastel-blue); font-size: 1rem; width: 44px; height: 44px;" title="Rotate Right / หมุนขวา">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                
+                <!-- Exit -->
+                <button id="btn-photo-exit" class="circle-bubble-btn" style="background: var(--pastel-red); font-size: 1.1rem; width: 44px; height: 44px; color: white;" title="Exit Photo Mode / ออก">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 14. CAMPAIGN ROAD SELECTION MODAL -->
+    <div id="campaign-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 12000;">
+        <div class="cute-modal-box scale-up-card" style="max-width: 580px !important; width: 95%; background-color: #fffdf5; background-image: radial-gradient(rgba(58,50,50,0.03) 15%, transparent 16%); background-size: 18px 18px; border: 4.5px solid var(--border-dark); border-radius: 32px; padding: 22px; box-shadow: var(--toy-shadow-large); font-family: var(--font-cute); position: relative;">
+            
+            <button id="btn-close-campaign" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white;" title="Close Campaign Menu">&times;</button>
+            
+            <div class="results-header" style="margin-bottom: 15px; text-align: center; position: relative;">
+                <div class="select-badge" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark); text-shadow: 1px 1px 0 white;">🗺️ STORY MODE</div>
+                <h2 style="font-size: 1.8rem; margin: 6px 0 2px 0; -webkit-text-stroke: 1px var(--border-dark); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.05));" id="campaign-title">THAILAND CAMPAIGN ROAD</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;" id="campaign-subtitle">Sequentially beat all 5 boards to lift the Golden Siam Cup!</div>
+                
+                <!-- Overall Campaign completion -->
+                <div style="margin-top: 10px; padding: 6px 12px; border: 2.5px solid var(--border-dark); border-radius: 12px; background: rgba(255,255,255,0.75); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+                        <span id="campaign-pct-label">CAMPAIGN PROGRESS / ความคืบหน้า:</span>
+                        <span id="campaign-pct-value">0% (0/5 BEATEN)</span>
+                    </div>
+                    <div style="width: 100%; height: 10px; border: 2px solid var(--border-dark); border-radius: 5px; background: #fff; overflow: hidden; position: relative;">
+                        <div id="campaign-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(to right, var(--pastel-yellow), var(--pastel-pink)); transition: width 0.4s ease-out;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign Road Pathway list -->
+            <div id="campaign-road-pathway" style="display: flex; flex-direction: column; gap: 14px; max-height: 380px; overflow-y: auto; padding-right: 6px; margin-bottom: 5px;">
+                <!-- Populated dynamically via JS: Nodes for Bangkok, Chiang Mai, Ayutthaya, Pattaya, Phuket -->
+            </div>
+            
+            <div style="font-family: var(--font-cute); font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-align: center; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.5px;" id="campaign-footer-text">
+                Campaign progress saves automatically in travel passport
+            </div>
+        </div>
+    </div>
+
+    <!-- 15. NEW RELIC UNLOCKED POPUP MODAL -->
+    <div id="relic-unlock-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 22000;">
+        <div class="cute-modal-box scale-up-card" style="max-width: 340px; background: #fffdf5; border: 4.5px solid var(--border-dark); border-radius: 28px; padding: 22px; box-shadow: var(--toy-shadow-large); text-align: center; font-family: var(--font-cute); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -10px; left: -10px; font-size: 2.5rem; opacity: 0.15;">✨</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 2.5rem; opacity: 0.15;">✨</div>
+
+            <div class="select-badge" style="background-color: var(--pastel-mint); border-color: var(--border-dark); color: var(--text-dark); padding: 4px 14px; display: inline-block;">NEW RELIC UNLOCKED! 🏆</div>
+            <h2 style="font-size: 1.6rem; font-weight: 900; color: var(--text-dark); margin: 12px 0 6px 0;" id="relic-unlock-title">Yi Peng Lanna Lantern</h2>
+            <div style="font-size: 4.5rem; margin: 15px 0; filter: drop-shadow(0 4px 0 var(--border-dark)); animation: celebration-bounce 0.8s infinite;" id="relic-unlock-emoji">🏮</div>
+            
+            <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; line-height: 1.4; margin-bottom: 20px;" id="relic-unlock-desc">
+                Congratulations! You successfully completed the Chiang Mai Campaign Road!
+            </p>
+            
+            <button id="btn-relic-claim" class="cute-party-btn asset-confirm-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 100%; border-width: 3px; box-shadow: 0 4px 0 var(--border-dark);">
+                <span class="btn-bubble-content">ADD TO PASSPORT 📖✨</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Switch CDN Button Binding -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var btnSwitch = document.getElementById('btn-switch-cdn');
+            if (btnSwitch) {
+                btnSwitch.addEventListener('click', function() {
+                    var urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('cdn', 'unpkg');
+                    window.location.search = urlParams.toString();
+                });
+            }
+        });
+    </script>
+
+    <!-- Tile Hover Tooltip (Cozy Nintendo Style) -->
+    <div id="tile-hover-tooltip" class="cute-tooltip" style="position: absolute; display: none; pointer-events: none; z-index: 10000; background: rgba(255,255,255,0.95); border: 3.5px solid var(--border-dark); border-radius: 18px; padding: 10px 14px; font-family: var(--font-cute); font-weight: 800; font-size: 0.85rem; box-shadow: var(--toy-shadow-small); color: var(--text-dark); min-width: 160px; pointer-events: none; opacity: 0; transition: opacity 0.15s ease;">
+        <div id="tooltip-title" style="font-size: 0.95rem; font-weight: 800; -webkit-text-stroke: 0.5px var(--border-dark); margin-bottom: 2px;">Khaosan Road ☕</div>
+        <div id="tooltip-owner" style="font-size: 0.72rem; color: #4b5563; font-weight: 700;">Bank Owned</div>
+        <div id="tooltip-level" style="font-size: 0.7rem; color: var(--pastel-pink); margin-top: 2px; font-weight: 800;">LEVEL 1 ⭐</div>
+    </div>
+
+    <!-- INTERACTIVE TUTORIAL OVERLAY -->
+    <div id="tutorial-overlay">
+        <div class="tutorial-card">
+            <div id="tutorial-icon" class="tutorial-illustration">🎒</div>
+            <h3 id="tutorial-title" class="tutorial-title">WELCOME TOURIST!</h3>
+            <p id="tutorial-text" class="tutorial-text">Welcome to Thailand Toy Tour! Roll dice, buy colorful shops, and upgrade them to win the tour championship! 🏆</p>
+            
+            <div class="tutorial-dots">
+                <div class="tutorial-dot active"></div>
+                <div class="tutorial-dot"></div>
+                <div class="tutorial-dot"></div>
+            </div>
+            
+            <div class="tutorial-actions">
+                <button id="btn-next-tutorial" class="btn-tutorial-next asset-confirm-btn">NEXT STEP ➡️</button>
+                <button id="btn-skip-tutorial" class="btn-tutorial-skip">SKIP TUTORIAL ❌</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 13. LEVEL UP REWARD CLAIM MODAL -->
+    <div id="level-up-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 25000;">
+        <div class="cute-modal-box scale-up-card level-up-box" style="background: radial-gradient(circle, #fffdf0 0%, #fffae0 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 30px 20px; text-align: center; max-width: 380px; width: 90%; position: relative;">
+            
+            <div class="level-up-banner" style="background: var(--pastel-yellow); border: 3px solid var(--border-dark); border-radius: 20px; padding: 10px 15px; margin: -55px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.5rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block;">
+                LEVEL UP! 🎉
+            </div>
+            
+            <div class="level-up-emoji-burst" id="level-up-emoji" style="font-size: 4rem; margin: 10px 0; animation: floating-bounce 2s ease-in-out infinite;">🏆</div>
+            
+            <div class="level-up-new-level" id="level-up-new-level-text" style="font-family: var(--font-cute); font-weight: 800; font-size: 2.2rem; color: var(--text-dark); -webkit-text-stroke: 1.5px var(--border-dark); text-shadow: 3px 3px 0 var(--pastel-pink); margin-bottom: 5px;">
+                LEVEL 2!
+            </div>
+            
+            <p id="level-up-subtitle" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.95rem; color: var(--text-muted); margin: 0 0 20px 0;">YOU ARE GROWING SO FAST! 🎒</p>
+            
+            <div class="level-up-reward-panel" style="background: #ffffff; border: 3px solid var(--border-dark); border-radius: 25px; padding: 15px; box-shadow: var(--toy-shadow-small); margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; overflow: hidden;">
+                <div style="font-size: 0.75rem; font-weight: 800; background: var(--pastel-pink); border: 2px solid var(--border-dark); border-radius: 8px; padding: 2px 8px; color: var(--text-dark); text-transform: uppercase;">Reward Unlocked! 🎁</div>
+                <div id="level-up-reward-icon" style="font-size: 3rem;">🛺</div>
+                <div id="level-up-reward-name" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.15rem; color: var(--text-dark);">Tuk-Tuk Drifter Badge</div>
+                <p id="level-up-reward-desc" style="font-size: 0.78rem; color: var(--text-muted); margin: 0; line-height: 1.35;">Show off your speed on your tourist profile!</p>
+            </div>
+            
+            <button id="btn-level-up-claim" class="cute-bubble-btn btn-green shadow-bubble asset-confirm-btn" style="width: 100%; max-width: 220px; font-size: 1.15rem; padding: 8px 12px; margin: 0 auto; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+                <span class="btn-bubble-content">CLAIM REWARD! 🌟</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Attract Mode Banner -->
+    <div id="attract-mode-banner" style="display: none; position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 99999; pointer-events: none; text-align: center; animation: floating-bounce 2s ease-in-out infinite;">
+        <div style="background: rgba(239, 68, 68, 0.95); border: 4px solid var(--border-dark); border-radius: 20px; padding: 10px 24px; box-shadow: var(--toy-shadow-large); font-family: var(--font-cute); font-weight: 800; font-size: 1.4rem; color: white; -webkit-text-stroke: 1px var(--border-dark); letter-spacing: 1px; text-transform: uppercase;">
+            🎮 DEMO MODE 🎮
+        </div>
+        <p style="font-family: var(--font-cute); font-weight: 700; font-size: 0.85rem; color: #fff; text-shadow: 2px 2px 0 #000; margin: 8px 0 0 0;">TOUCH SCREEN OR PRESS ANY KEY TO PLAY!</p>
+    </div>
+
+
+    <!-- 14. DAILY LOGIN REWARD CALENDAR MODAL -->
+    <div id="daily-login-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 26000;">
+        <div class="cute-modal-box scale-up-card daily-login-box" style="background: radial-gradient(circle, #fffdf2 0%, #fff7d6 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 25px 15px; text-align: center; max-width: 440px; width: 95%; position: relative;">
+            
+            <div class="level-up-banner" style="background: var(--pastel-pink); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 18px; margin: -50px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                Daily Rewards! 📅
+            </div>
+            
+            <h3 style="font-family: var(--font-cute); font-weight: 800; font-size: 1.2rem; color: var(--text-dark); margin: 5px 0 15px 0;">WELCOME BACK, EXPLORER! 🎒</h3>
+            
+            <div class="daily-grid" id="daily-login-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                <!-- Days 1-7 populated dynamically -->
+            </div>
+            
+            <button id="btn-daily-claim" class="cute-bubble-btn btn-green shadow-bubble asset-confirm-btn" style="width: 100%; max-width: 200px; font-size: 1.1rem; padding: 8px 12px; margin: 0 auto; cursor: pointer; display: flex; justify-content: center; align-items: center;">
+                <span class="btn-bubble-content">CLAIM TODAY! 🎁</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 15. CHEST VAULT & REWARD CHEST MODAL -->
+    <div id="chest-vault-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 24000;">
+        <div class="cute-modal-box scale-up-card chest-vault-box" style="background: radial-gradient(circle, #fcfaf2 0%, #f6f0d2 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 25px 15px; text-align: center; max-width: 500px; width: 95%; position: relative;">
+            <button id="btn-close-vault" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; z-index: 100;">&times;</button>
+            
+            <div class="level-up-banner" style="background: var(--pastel-yellow); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 18px; margin: -50px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                Treasure Vault 💎
+            </div>
+            
+            <h3 style="font-family: var(--font-cute); font-weight: 800; font-size: 1.05rem; color: var(--text-dark); margin: 5px 0 12px 0;" id="lbl-vault-shards-header">CHARACTER UNLOCK PROGRESS 🧩</h3>
+            
+            <!-- Fragment Progress Grid -->
+            <div id="vault-fragments-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(255,255,255,0.7); border: 2.5px solid var(--border-dark); border-radius: 20px; padding: 10px; margin-bottom: 20px; max-height: 140px; overflow-y: auto;">
+                <!-- Dynamically populated fragments -->
+            </div>
+            
+            <h3 style="font-family: var(--font-cute); font-weight: 800; font-size: 1.05rem; color: var(--text-dark); margin: 5px 0 10px 0;">REWARD CHESTS 📦</h3>
+            
+            <!-- Chest Grid -->
+            <div id="vault-chests-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                <!-- Populated dynamically: Common, Rare, Festival, Legendary -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 16. REWARD CHEST OPENING CINEMATIC SCREEN -->
+    <div id="chest-opening-screen" class="ui-overlay" style="display: none; opacity: 0; background: rgba(15, 10, 10, 0.92); z-index: 27000; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s ease;">
+        <div class="opening-content-box" style="text-align: center; max-width: 420px; width: 90%;">
+            <!-- Dynamic Glowing Ray ring behind the chest -->
+            <div class="chest-sunburst" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 220px; height: 220px; background: radial-gradient(circle, rgba(253,224,71,0.2) 0%, transparent 60%); border-radius: 50%; pointer-events: none;"></div>
+            
+            <!-- Giant Chest emoji that shakes and pops -->
+            <div id="opening-chest-emoji" style="font-size: 8rem; filter: drop-shadow(0 8px 0 rgba(0,0,0,0.5)); transition: transform 0.2s; margin-top: -20px; display: inline-block;">📦</div>
+            
+            <h2 id="opening-chest-title" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.8rem; color: #fff; text-shadow: 2px 2px 0 var(--border-dark); margin: 20px 0 10px 0;">OPENING CHEST...</h2>
+            
+            <!-- Cards listing revealed rewards -->
+            <div id="opening-rewards-deck" style="display: flex; flex-direction: column; gap: 10px; margin: 15px 0 25px 0; min-height: 100px; justify-content: center; align-items: center;">
+                <!-- Injected sequentially -->
+            </div>
+            
+            <button id="btn-opening-close" class="cute-bubble-btn btn-green shadow-bubble" style="display: none; margin: 0 auto; width: 100%; max-width: 200px;">
+                <span class="btn-bubble-content">SWEET! 🌟</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- DAILY LUCKY WHEEL SYSTEM -->
+    <div id="lucky-wheel-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 25000;">
+        <div class="cute-modal-box scale-up-card lucky-wheel-box" style="background: radial-gradient(circle, #fffdf2 0%, #fff7d6 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 25px 15px; text-align: center; max-width: 440px; width: 95%; position: relative;">
+            <button id="btn-close-lucky-wheel" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; z-index: 100;">&times;</button>
+            
+            <div id="lucky-wheel-title" class="level-up-banner" style="background: var(--pastel-pink); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 18px; margin: -50px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                Lucky Wheel! 🎡
+            </div>
+            
+            <h3 style="font-family: var(--font-cute); font-weight: 800; font-size: 1.05rem; color: var(--text-dark); margin: 5px 0 15px 0;" id="lucky-wheel-subtitle">SPIN FOR DAILY REWARDS! 🌟</h3>
+            
+            <!-- Wheel Container -->
+            <div class="lucky-wheel-container" style="position: relative; width: 300px; height: 300px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;">
+                <!-- Pointer -->
+                <div class="lucky-wheel-pointer" style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #ef4444; filter: drop-shadow(0 3px 0 var(--border-dark)); z-index: 50; transition: transform 0.15s ease;"></div>
+                
+                <!-- Rotating Plate -->
+                <div id="lucky-wheel-plate" class="lucky-wheel-plate" style="width: 290px; height: 290px; border-radius: 50%; border: 6px solid var(--border-dark); box-shadow: 0 8px 0 var(--border-dark); background: #fff; position: relative; overflow: hidden; transform-origin: center; transition: transform 6s cubic-bezier(0.15, 0.85, 0.3, 1);">
+                    <!-- Dynamic SVG content will be injected here -->
+                </div>
+                
+                <!-- Center Peg -->
+                <div class="lucky-wheel-peg" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; border: 4px solid var(--border-dark); background: linear-gradient(135deg, #fef08a 0%, #facc15 100%); box-shadow: 0 4px 0 var(--border-dark), inset 0 2px 0 white; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--text-dark);">
+                    👑
+                </div>
+            </div>
+            
+            <!-- Spin Button -->
+            <button id="btn-lucky-spin" class="cute-bubble-btn btn-green shadow-bubble asset-confirm-btn" style="width: 100%; max-width: 220px; font-size: 1.1rem; padding: 8px 12px; margin: 0 auto; cursor: pointer; display: flex; justify-content: center; align-items: center;">
+                <span class="btn-bubble-content">SPIN FOR FREE! 🎁</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- DICE COLLECTION VAULT SYSTEM -->
+    <div id="dice-collection-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 25000;">
+        <div class="cute-modal-box scale-up-card dice-collection-box" style="background: radial-gradient(circle, #fdfcf7 0%, #f7f3da 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 25px 15px; text-align: center; max-width: 550px; width: 95%; position: relative;">
+            <button id="btn-close-dice-collection" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; z-index: 100;">&times;</button>
+            
+            <div class="level-up-banner" style="background: var(--pastel-pink); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 18px; margin: -50px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                Dice Vault 🎲✨
+            </div>
+            
+            <div class="dice-collection-layout" style="display: flex; gap: 15px; text-align: left; height: 350px;">
+                <!-- Left panel: 3D Previewer -->
+                <div class="dice-preview-side" style="flex: 1.1; display: flex; flex-direction: column; background: rgba(255,255,255,0.7); border: 2.5px solid var(--border-dark); border-radius: 24px; padding: 12px; align-items: center; position: relative;">
+                    <!-- Rarity badge -->
+                    <div id="dice-preview-rarity" class="rarity-badge" style="position: absolute; top: 10px; left: 10px; font-family: var(--font-cute); font-size: 0.65rem; font-weight: 900; border: 2px solid var(--border-dark); border-radius: 8px; padding: 2px 8px; text-transform: uppercase; background: #94a3b8; color: white; z-index: 10;">COMMON</div>
+                    
+                    <!-- 3D Canvas container -->
+                    <div style="width: 100%; height: 160px; background: radial-gradient(circle, #ffffff 0%, #f1f5f9 100%); border-radius: 18px; border: 2px solid var(--border-dark); overflow: hidden; position: relative; margin-top: 15px; margin-bottom: 10px;">
+                        <canvas id="dice-preview-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                    </div>
+                    
+                    <div style="width: 100%; text-align: center;">
+                        <h4 id="dice-preview-name" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.15rem; color: var(--text-dark); margin: 0 0 4px 0;">Classic White</h4>
+                        <p id="dice-preview-source" style="font-family: var(--font-cute); font-weight: 700; font-size: 0.72rem; color: #f97316; margin: 0 0 10px 0; background: #fff7ed; border: 1.5px solid #ffedd5; padding: 3px 8px; border-radius: 8px; display: inline-block;">Unlocked by default</p>
+                    </div>
+                    
+                    <button id="btn-equip-dice" class="cute-bubble-btn btn-green shadow-bubble" style="width: 100%; margin-top: auto; font-size: 0.95rem; padding: 6px 12px;">
+                        <span class="btn-bubble-content">EQUIP DICE 🎲</span>
+                    </button>
+                </div>
+                
+                <!-- Right panel: Scrolling skins grid -->
+                <div class="dice-grid-side" style="flex: 1.2; display: flex; flex-direction: column; overflow: hidden;">
+                    <div id="dice-skins-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; overflow-y: auto; height: 100%;">
+                        <!-- Dynamically populated dice slots -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DAILY LUCKY WHEEL REWARD POPUP -->
+    <div id="lucky-reward-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 26000; background: rgba(15, 10, 10, 0.85);">
+        <div class="cute-modal-box scale-up-card lucky-reward-box" style="background: radial-gradient(circle, #fffdf2 0%, #fffae6 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 30px 20px; text-align: center; max-width: 400px; width: 90%; position: relative;">
+            
+            <div class="results-header" style="margin-bottom: 20px; text-align: center;">
+                <div class="select-badge" style="background-color: var(--pastel-yellow); border-color: var(--border-dark); color: var(--text-dark);" id="lucky-reward-badge-text">CONGRATULATIONS! 🎉</div>
+                <h2 id="lucky-reward-title" class="results-title" style="font-size: 1.8rem; margin-top: 10px; margin-bottom: 4px;">YOU WON!</h2>
+            </div>
+            
+            <!-- Reward Icon/Emoji with float animation -->
+            <div id="lucky-reward-icon" style="font-size: 5.5rem; filter: drop-shadow(0 6px 0 var(--border-dark)); animation: sticker-bob 2s infinite ease-in-out alternate; margin: 10px 0;">🎁</div>
+            
+            <!-- Reward Name and Description -->
+            <div id="lucky-reward-name" style="font-family: var(--font-cute); font-size: 1.45rem; font-weight: 900; color: var(--text-dark); margin: 15px 0 5px 0;">Reward Name</div>
+            <div id="lucky-reward-rarity" class="rarity-pill rare" style="display: inline-block; margin-bottom: 15px; font-size: 0.65rem; padding: 3px 10px; border-radius: 8px;">RARE</div>
+            
+            <button id="btn-lucky-reward-claim" class="cute-bubble-btn btn-green shadow-bubble asset-confirm-btn" style="width: 100%; max-width: 180px; font-size: 1.1rem; padding: 8px 12px; margin: 0 auto; cursor: pointer;">
+                <span class="btn-bubble-content">AWESOME! 👍</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 17. FIRST TIME WELCOME TOUR OVERLAY (Cute Nintendo Style) -->
+    <div id="welcome-tour-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 30000;">
+        <div class="cute-modal-box scale-up-card welcome-tour-box" style="background: radial-gradient(circle, #fffdf2 0%, #fff7d6 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 30px 20px; text-align: center; max-width: 460px; width: 95%; position: relative;">
+            
+            <!-- Welcome Ribbon -->
+            <div class="level-up-banner" style="background: var(--pastel-pink); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 24px; margin: -55px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.3rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                Welcome Tour! ✈️
+            </div>
+            
+            <!-- Skip Button (Cute Circular Close) -->
+            <button id="btn-welcome-skip-icon" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; font-weight: 800; z-index: 100;" title="Skip Tour">&times;</button>
+            
+            <!-- Slide Content Card -->
+            <div class="welcome-slide-container" style="min-height: 260px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <!-- Step Illustration Emoji -->
+                <div id="welcome-tour-emoji" style="font-size: 5rem; filter: drop-shadow(3px 3px 0 var(--border-dark)); animation: floating-bounce 2s ease-in-out infinite;">🗺️</div>
+                
+                <!-- Step Title -->
+                <h3 id="welcome-tour-title" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.5rem; color: var(--text-dark); -webkit-text-stroke: 1.2px var(--border-dark); text-shadow: 2px 2px 0 var(--pastel-pink); margin: 0 0 5px 0;">
+                    GOAL OF THE GAME
+                </h3>
+                
+                <!-- Step Description -->
+                <p id="welcome-tour-desc" style="font-family: var(--font-cute); font-weight: 700; color: #4b5563; font-size: 0.95rem; line-height: 1.5; padding: 0 10px; margin: 0; text-align: center; background-color: rgba(255,255,255,0.65); border: 2.5px dashed rgba(58,50,50,0.15); border-radius: 18px; padding: 12px 16px; width: 100%; box-sizing: border-box;">
+                    Explore beautiful miniature cities, buy pastel shops, and upgrade resorts to become the ultimate tourist!
+                </p>
+            </div>
+            
+            <!-- Dots Indicators -->
+            <div class="welcome-tour-dots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+                <div class="welcome-tour-dot active" style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--border-dark); background-color: var(--pastel-pink); transition: all 0.2s;"></div>
+                <div class="welcome-tour-dot" style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--border-dark); background-color: #fff; transition: all 0.2s;"></div>
+                <div class="welcome-tour-dot" style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--border-dark); background-color: #fff; transition: all 0.2s;"></div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;">
+                <button id="btn-welcome-skip" class="cute-mini-btn" style="background: #94a3b8; color: white; padding: 10px 18px; border-radius: 14px; border: 3px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); font-weight: 800; cursor: pointer; flex: 1;">SKIP ❌</button>
+                <button id="btn-welcome-next" class="cute-party-btn ready-btn asset-confirm-btn" style="flex: 2; margin-top: 0; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <span class="btn-bubble-content" style="padding: 10px 20px; font-size: 1.05rem;">NEXT STEP ➡️</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 18. TILE LANDMARK DISCOVERY OVERLAY (Cute Nintendo Style) -->
+    <div id="tile-discovery-modal" class="modal-overlay ui-overlay" style="display: none; align-items: center; justify-content: center; z-index: 31000;">
+        <div class="cute-modal-box scale-up-card discovery-modal-box" style="background: radial-gradient(circle, #f5fbfd 0%, #e0f2fe 100%) !important; border: 5px solid var(--border-dark); border-radius: 35px; box-shadow: var(--toy-shadow-large); padding: 30px 20px; text-align: center; max-width: 440px; width: 95%; position: relative;">
+            
+            <!-- Discovery Ribbon -->
+            <div class="level-up-banner" style="background: var(--pastel-mint); border: 3px solid var(--border-dark); border-radius: 20px; padding: 8px 24px; margin: -55px auto 15px auto; box-shadow: var(--toy-shadow-small); font-family: var(--font-cute); font-weight: 800; font-size: 1.25rem; text-shadow: 2px 2px 0 #fff; color: var(--text-dark); display: inline-block; text-transform: uppercase;">
+                DISCOVERY! 🌟
+            </div>
+            
+            <!-- Close Cross Button -->
+            <button id="btn-discovery-close-icon" class="circle-bubble-btn" style="position: absolute; top: -10px; right: -10px; background: var(--pastel-red); color: white; font-weight: 800; z-index: 100;">&times;</button>
+            
+            <!-- Content -->
+            <div style="min-height: 240px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <!-- Big Landmark Image / Illustration (Uses resolved thumbnail or category emoji) -->
+                <div id="discovery-landmark-emoji" style="font-size: 5.5rem; filter: drop-shadow(3px 3px 0 var(--border-dark)); animation: floating-bounce 2s ease-in-out infinite;">🛕</div>
+                
+                <!-- Subtitle: "New Bangkok Landmark Discovered!" -->
+                <h2 id="discovery-landmark-subtitle" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.35rem; color: #0284c7; -webkit-text-stroke: 1px var(--border-dark); text-shadow: 2px 2px 0 #fff; margin: 5px 0 0 0; text-transform: uppercase;">
+                    NEW BANGKOK LANDMARK DISCOVERED!
+                </h2>
+                
+                <!-- Landmark Title -->
+                <h3 id="discovery-landmark-name" style="font-family: var(--font-cute); font-weight: 800; font-size: 1.7rem; color: var(--text-dark); margin: 0; text-shadow: 2px 2px 0 var(--pastel-yellow);">
+                    Wat Arun Temple
+                </h3>
+                
+                <!-- Description -->
+                <p id="discovery-landmark-desc" style="font-family: var(--font-cute); font-weight: 700; color: #4b5563; font-size: 0.9rem; line-height: 1.4; padding: 10px 14px; margin: 0; text-align: center; background-color: rgba(255,255,255,0.75); border: 2.5px dashed var(--pastel-blue); border-radius: 18px; width: 100%; box-sizing: border-box;">
+                    A gorgeous miniature golden temple spire.
+                </p>
+                
+                <!-- Rewards Row -->
+                <div style="display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 8px;">
+                    <div style="background: var(--pastel-yellow); border: 2.5px solid var(--border-dark); border-radius: 15px; padding: 6px 14px; font-family: var(--font-cute); font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; box-shadow: var(--toy-shadow-small);">
+                        <span>📖</span> <span id="discovery-reward-album">Sticker unlocked!</span>
+                    </div>
+                    <div style="background: var(--pastel-mint); border: 2.5px solid var(--border-dark); border-radius: 15px; padding: 6px 14px; font-family: var(--font-cute); font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; box-shadow: var(--toy-shadow-small);">
+                        <span class="ui-xp-icon" aria-hidden="true"></span> <span id="discovery-reward-xp">+50 XP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Claim button -->
+            <button id="btn-discovery-claim" class="cute-party-btn ready-btn asset-confirm-btn" style="width: 100%; margin-top: 0; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <span class="btn-bubble-content" style="padding: 12px 24px; font-size: 1.1rem; text-transform: uppercase;">AWESOME! 🌟</span>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- REAL-TIME DEBUG MODE PANEL -->
+    <div id="debug-panel" class="debug-panel-container" style="display: none;">
+        <div class="debug-panel-header">
+            <span>⚙️ GAME ENGINE DEBUG PANEL</span>
+            <span class="debug-toggle-hint">[F8 to Hide]</span>
+        </div>
+        <div class="debug-panel-content">
+            <div class="debug-row">
+                <span class="debug-label">Current Screen:</span>
+                <span id="debug-screen" class="debug-value debug-highlight-screen">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Current Game State:</span>
+                <span id="debug-game-state" class="debug-value debug-highlight-state">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Selected Character:</span>
+                <span id="debug-selected-char" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Loading Progress:</span>
+                <span id="debug-loading-progress" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Assets Loaded:</span>
+                <span id="debug-assets-loaded" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Demo Mode Active:</span>
+                <span id="debug-demo-mode" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Input Locked:</span>
+                <span id="debug-input-locked" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Overlay Count:</span>
+                <span id="debug-overlay-count" class="debug-value">-</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Current Turn:</span>
+                <span id="debug-current-turn" class="debug-value">-</span>
+            </div>
+        </div>
+        <!-- Quick Actions inside Debug Panel for instant diagnostic aid -->
+        <div class="debug-panel-actions">
+            <button id="btn-debug-unlock-input" class="debug-action-btn">🔓 Unlock Input</button>
+            <button id="btn-debug-close-modals" class="debug-action-btn">❌ Close Modals</button>
+            <button id="btn-debug-add-common-chest" class="debug-action-btn">📦 +Common Chest</button>
+            <button id="btn-debug-add-epic-chest" class="debug-action-btn">🔮 +Epic Chest</button>
+            <button id="btn-debug-add-legendary-chest" class="debug-action-btn">👑 +Legendary Chest</button>
+            <button id="btn-debug-add-level" class="debug-action-btn">⭐ +1 Level</button>
+            <button id="btn-debug-add-coins" class="debug-action-btn">💰 +1000 Coins</button>
+            <button id="btn-debug-reset-daily" class="debug-action-btn">📅 Reset Daily Login</button>
+        </div>
+    </div>
+
+
+    <!-- Main Game Script Module -->
+    <script type="module" src="main.js?v=1.3.0-rc1"></script>
+    <script src="qa_simulator.js?v=2.0.0"></script>
+</body>
+</html>

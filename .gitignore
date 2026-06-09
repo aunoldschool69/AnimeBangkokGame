@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Blender source files
+*.blend
+*.blend1
+
+# Temporary log and inspection files
+*.log
+*.txt
+*report.md
+debug_results.json
+validation_log.txt
+*.bak
+
+# QA/Mobile screenshots and renders in the root
+rc-*.png
+ct2-*.png
+hud-mobile-*.png
+*_final.png
+naga_render.png
+character_roster_preview.png
+
+# Development scratch directories
+scratch/
+.system_generated/
+.gemini/
+/brain/
+/scratch/
+/task.md
+/implementation_plan.md
+/walkthrough.md

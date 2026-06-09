@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="cbc" cx="45%" cy="38%" r="52%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="55%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="32" cy="56" rx="22" ry="5" fill="rgba(0,0,0,0.12)"/>
+  <ellipse cx="32" cy="30" rx="24" ry="24" fill="url(#cbc)" stroke="#451a03" stroke-width="2.5"/>
+  <ellipse cx="32" cy="30" rx="18" ry="18" fill="none" stroke="#fde68a" stroke-width="1.5" opacity="0.6"/>
+  <polygon points="32,14 35.5,23 45,23 37.5,29 40,38 32,33 24,38 26.5,29 19,23 28.5,23" fill="#fef08a" stroke="#92400e" stroke-width="1"/>
+  <ellipse cx="22" cy="19" rx="6" ry="3" fill="white" opacity="0.35" transform="rotate(-25,22,19)"/>
+</svg>

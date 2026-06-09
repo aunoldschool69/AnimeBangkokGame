@@ -1,0 +1,40 @@
+# ==========================================================================
+# THAILAND TOY TOUR 2.5D BOARD GAME - NETLIFY CONFIGURATION
+# Optimizes caching, security headers, and compression for 3D GLB/GLTF assets
+# ==========================================================================
+
+[build]
+  publish = "."
+
+# Global custom security and compatibility headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "no-referrer-when-downgrade"
+    # Allow assets loading from subdomains or other platforms
+    Access-Control-Allow-Origin = "*"
+
+# Optimized performance caching for massive 3D models (.glb/.gltf)
+[[headers]]
+  for = "/assets/*.glb"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/**/*.glb"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Caching for procedural soundtracks and SFX (.mp3)
+[[headers]]
+  for = "/assets/*.mp3"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/**/*.mp3"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
